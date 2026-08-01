@@ -1,0 +1,95 @@
+# =============================================================================
+# Domain: recruitment
+# Entity: JobRequisition
+# Description: Hiring request opened by a manager — defines headcount, role,
+#              budget and the funnel's root. References organization (dept/
+#              position) and employee (opened_by) as logical FKs.
+# =============================================================================
+
+models:
+  - name: JobRequisition
+    collection: job_requisitions
+    description: "Hiring request (headcount + role + budget); root of the recruitment funnel."
+
+    fields:
+      id:
+        type: uuid
+        attributes: ["@id", "@default(uuid)"]
+        description: "Unique requisition id"
+
+      company_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Owning company # logical FK organization.Company.id"
+
+      department_id:
+        type: uuid?
+        attributes: ["@exclude_from_foreign_key_check"]
+        description: "Hiring department # logical FK organization.Department.id"
+
+      position_id:
+        type: uuid?
+        attributes: ["@exclude_from_foreign_key_check"]
+        description: "Target position # logical FK organization.Position.id"
+
+      title:
+        type: string
+        attributes: ["@required", "@length(max=200)"]
+        description: "Role title being hired for"
+
+      headcount:
+        type: int
+        attributes: ["@required", "@non_negative"]
+        description: "Number of openings requested"
+
+      employment_type:
+        type: string?
+        attributes: ["@length(max=60)"]
+        description: "Employment type (full-time / part-time / contract / ...)"
+
+      status:
+        type: RequisitionStatus
+        attributes: ["@required", "@default(draft)"]
+        description: "Lifecycle status"
+
+      opened_by:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Hiring manager who opened the requisition # logical FK employee.Employee.id"
+
+      budget:
+        type: decimal?
+        description: "Approved hiring budget"
+
+      deadline:
+        type: date?
+        description: "Target fill-by date"
+
+      metadata:
+        type: Metadata
+        attributes: ["@audit_metadata"]
+        description: "Audit metadata"
+
+    indexes:
+      - type: index
+        fields: [company_id, status]
+      - type: index
+        fields: [department_id]
+      - type: index
+        fields: [opened_by]
+
+enums:
+  - name: RequisitionStatus
+    description: "Requisition lifecycle status"
+    variants:
+      - name: draft
+        default: true
+        description: "Not yet published"
+      - name: open
+        description: "Actively hiring"
+      - name: on_hold
+        description: "Paused"
+      - name: closed
+        description: "Filled / completed"
+      - name: cancelled
+        description: "Withdrawn"

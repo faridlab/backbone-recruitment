@@ -1,0 +1,77 @@
+# =============================================================================
+# Domain: recruitment
+# Entity: JobOffer
+# Description: An offer extended to a candidate for an application. Acceptance
+#              triggers the recruitment -> employee handoff (event / port), not
+#              a direct employee write. In-module FK to JobApplication.
+# =============================================================================
+
+models:
+  - name: JobOffer
+    collection: job_offers
+    description: "An offer extended for an application; acceptance triggers the hire handoff."
+
+    fields:
+      id:
+        type: uuid
+        attributes: ["@id", "@default(uuid)"]
+        description: "Unique offer id"
+
+      company_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Owning company # logical FK organization.Company.id"
+
+      application_id:
+        type: uuid
+        attributes: ["@required", "@foreign_key(JobApplication.id)"]
+        description: "Application this offer is for # FK job_applications.id (in-module)"
+
+      proposed_salary:
+        type: decimal?
+        description: "Proposed salary"
+
+      employment_type:
+        type: string?
+        attributes: ["@length(max=60)"]
+        description: "Employment type (full-time / part-time / contract / ...)"
+
+      status:
+        type: OfferStatus
+        attributes: ["@required", "@default(draft)"]
+        description: "Offer status"
+
+      offered_at:
+        type: datetime?
+        description: "When the offer was extended"
+
+      accepted_at:
+        type: datetime?
+        description: "When the candidate accepted"
+
+      metadata:
+        type: Metadata
+        attributes: ["@audit_metadata"]
+        description: "Audit metadata"
+
+    indexes:
+      - type: index
+        fields: [company_id, status]
+      - type: index
+        fields: [application_id]
+
+enums:
+  - name: OfferStatus
+    description: "Offer status"
+    variants:
+      - name: draft
+        default: true
+        description: "Draft offer"
+      - name: extended
+        description: "Extended to candidate"
+      - name: accepted
+        description: "Candidate accepted"
+      - name: declined
+        description: "Candidate declined"
+      - name: withdrawn
+        description: "Withdrawn by company"

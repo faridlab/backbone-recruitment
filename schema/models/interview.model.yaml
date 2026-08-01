@@ -1,0 +1,89 @@
+# =============================================================================
+# Domain: recruitment
+# Entity: Interview
+# Description: A scheduled interview round for an application, conducted by an
+#              employee (interviewer). In-module FK to JobApplication; logical
+#              FK to employee for the interviewer.
+# =============================================================================
+
+models:
+  - name: Interview
+    collection: interviews
+    description: "An interview round for an application, conducted by an interviewer."
+
+    fields:
+      id:
+        type: uuid
+        attributes: ["@id", "@default(uuid)"]
+        description: "Unique interview id"
+
+      company_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Owning company # logical FK organization.Company.id"
+
+      application_id:
+        type: uuid
+        attributes: ["@required", "@foreign_key(JobApplication.id)"]
+        description: "Application this interview belongs to # FK job_applications.id (in-module)"
+
+      interviewer_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Conducting employee # logical FK employee.Employee.id"
+
+      scheduled_at:
+        type: datetime
+        attributes: ["@required"]
+        description: "Scheduled start time"
+
+      round:
+        type: int?
+        attributes: ["@non_negative"]
+        description: "Round number (1, 2, ...)"
+
+      interview_format:
+        type: string?
+        attributes: ["@length(max=40)"]
+        description: "Format (onsite / video / phone)"
+
+      rating:
+        type: int?
+        attributes: ["@non_negative"]
+        description: "Overall rating score"
+
+      feedback:
+        type: string?
+        description: "Interviewer feedback"
+
+      status:
+        type: InterviewStatus
+        attributes: ["@required", "@default(scheduled)"]
+        description: "Interview status"
+
+      metadata:
+        type: Metadata
+        attributes: ["@audit_metadata"]
+        description: "Audit metadata"
+
+    indexes:
+      - type: index
+        fields: [company_id, status]
+      - type: index
+        fields: [application_id]
+      - type: index
+        fields: [interviewer_id]
+
+enums:
+  - name: InterviewStatus
+    description: "Interview status"
+    variants:
+      - name: scheduled
+        default: true
+        description: "Scheduled"
+      - name: completed
+        description: "Completed"
+      - name: cancelled
+        description: "Cancelled"
+      - name: no_show
+        description: "Candidate did not show up"

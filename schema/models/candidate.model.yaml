@@ -1,0 +1,86 @@
+# =============================================================================
+# Domain: recruitment
+# Entity: Candidate
+# Description: A person in the hiring funnel. Owned by recruitment until hired;
+#              on hire, backbone-employee creates the Employee (event, not a
+#              direct write). Candidate != Employee.
+# =============================================================================
+
+models:
+  - name: Candidate
+    collection: candidates
+    description: "A candidate in the recruitment funnel (pre-hire person master)."
+
+    fields:
+      id:
+        type: uuid
+        attributes: ["@id", "@default(uuid)"]
+        description: "Unique candidate id"
+
+      company_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Owning company # logical FK organization.Company.id"
+
+      first_name:
+        type: string
+        attributes: ["@required", "@length(max=120)"]
+        description: "Given name"
+
+      last_name:
+        type: string?
+        attributes: ["@length(max=120)"]
+        description: "Family name"
+
+      email:
+        type: string?
+        attributes: ["@length(max=255)"]
+        description: "Contact email"
+
+      phone:
+        type: string?
+        attributes: ["@length(max=40)"]
+        description: "Contact phone"
+
+      source:
+        type: CandidateSource?
+        description: "Acquisition channel"
+
+      current_employer:
+        type: string?
+        attributes: ["@length(max=200)"]
+        description: "Current employer"
+
+      resume_url:
+        type: string?
+        attributes: ["@length(max=500)"]
+        description: "Resume / CV URL"
+
+      metadata:
+        type: Metadata
+        attributes: ["@audit_metadata"]
+        description: "Audit metadata"
+
+    indexes:
+      - type: index
+        fields: [company_id]
+      # Dedupe candidates by email within a company.
+      - type: unique
+        fields: [company_id, email]
+        where: "deleted_at IS NULL"
+
+enums:
+  - name: CandidateSource
+    description: "Candidate acquisition channel"
+    variants:
+      - name: direct
+        default: true
+        description: "Direct applicant"
+      - name: referral
+        description: "Referred by an employee"
+      - name: job_board
+        description: "Job board posting"
+      - name: agency
+        description: "Recruitment agency"
+      - name: walk_in
+        description: "Walk-in applicant"

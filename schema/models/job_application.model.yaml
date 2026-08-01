@@ -1,0 +1,74 @@
+# =============================================================================
+# Domain: recruitment
+# Entity: JobApplication
+# Description: A candidate's application against a requisition — the central
+#              funnel object (applied -> screening -> interview -> offer ->
+#              hired/rejected). In-module FKs to Candidate + JobRequisition.
+# =============================================================================
+
+models:
+  - name: JobApplication
+    collection: job_applications
+    description: "A candidate's application to a requisition (central funnel object)."
+
+    fields:
+      id:
+        type: uuid
+        attributes: ["@id", "@default(uuid)"]
+        description: "Unique application id"
+
+      company_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Owning company # logical FK organization.Company.id"
+
+      candidate_id:
+        type: uuid
+        attributes: ["@required", "@foreign_key(Candidate.id)"]
+        description: "Applicant # FK candidates.id (in-module)"
+
+      requisition_id:
+        type: uuid
+        attributes: ["@required", "@foreign_key(JobRequisition.id)"]
+        description: "Requisition applied to # FK job_requisitions.id (in-module)"
+
+      status:
+        type: ApplicationStatus
+        attributes: ["@required", "@default(applied)"]
+        description: "Funnel stage"
+
+      applied_at:
+        type: datetime
+        attributes: ["@required", "@default(now)"]
+        description: "Application timestamp"
+
+      metadata:
+        type: Metadata
+        attributes: ["@audit_metadata"]
+        description: "Audit metadata"
+
+    indexes:
+      - type: index
+        fields: [company_id, status]
+      - type: index
+        fields: [candidate_id]
+      - type: index
+        fields: [requisition_id]
+
+enums:
+  - name: ApplicationStatus
+    description: "Application funnel stage"
+    variants:
+      - name: applied
+        default: true
+        description: "Just applied"
+      - name: screening
+        description: "Under screening"
+      - name: interview
+        description: "In interview loop"
+      - name: offer
+        description: "Offer stage"
+      - name: hired
+        description: "Hired"
+      - name: rejected
+        description: "Rejected"
