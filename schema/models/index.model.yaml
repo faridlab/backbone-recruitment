@@ -12,6 +12,10 @@
 module: recruitment
 version: 2
 schema: recruitment
+
+# ADR-0014 company fence (Wave 1 P0 sweep, 2026-08-16): talent acquisition is company-private as modeled — candidates, applications,
+# offers, requisitions, interviews (pillar-hrms H-5).
+company_fence: strict
 description: "recruitment / applicant tracking (requisition -> candidate -> offer -> hire)"
 
 config:
