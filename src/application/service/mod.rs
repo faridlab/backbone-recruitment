@@ -12,11 +12,26 @@ pub mod interview_service;
 pub mod job_application_service;
 pub mod job_offer_service;
 pub mod job_requisition_service;
+// <<< CUSTOM
+// Hand-written write services (user-owned, never regenerated):
+// - offer verbs + the hire-handoff producer (offer→accepted + `recruitment.hired`
+//   outbox emit, in one tx) and the offer-letter seam;
+// - stage-driven application transitions (the pipeline's one door, vacancy coupling);
+// - interview scheduling verbs + the interviewer-activity seam;
+// - requisition skill requirements (validated against the learning module's skills).
+pub mod activity_port;
+pub mod interview_write_service;
+pub mod job_application_write_service;
+pub mod job_offer_write_service;
+pub mod letter_port;
+pub mod offer_letter_render;
+pub mod requisition_skill_write_service;
+// END CUSTOM
+pub mod offer_letter_template_service;
+pub mod recruitment_stage_service;
+pub mod requisition_skill_service;
 
 // <<< CUSTOM
-// The hire write-service (ADR-005 producer): offer→accepted + `recruitment.hired` outbox emit, in one tx.
-// User-owned custom file — never regenerated.
-pub mod job_offer_write_service;
 // END CUSTOM
 
 pub use candidate_service::CandidateService;
@@ -25,5 +40,21 @@ pub use job_application_service::JobApplicationService;
 pub use job_offer_service::JobOfferService;
 pub use job_requisition_service::JobRequisitionService;
 // <<< CUSTOM
-pub use job_offer_write_service::{HireError, JobOfferWriteService, HIRED_EVENT_TYPE};
+pub use activity_port::{ActivityAck, ActivityCommand, ActivityRejected, ActivitySink, UnwiredActivitySink};
+pub use interview_write_service::{InterviewError, InterviewWriteService, NewInterview};
+pub use job_application_write_service::{
+    ApplicationError, JobApplicationWriteService, NewJobApplication, PipelineStatus,
+};
+pub use job_offer_write_service::{
+    ExtendOptions, JobOfferWriteService, NewJobOffer, OfferError, HIRED_EVENT_TYPE,
+};
+pub use letter_port::{LetterAck, LetterMessage, LetterRejected, OfferLetterSink, UnwiredOfferLetterSink};
+pub use requisition_skill_write_service::{
+    RequisitionSkillError, RequisitionSkillWriteService, SkillRequirement,
+};
+// END CUSTOM
+pub use offer_letter_template_service::OfferLetterTemplateService;
+pub use recruitment_stage_service::RecruitmentStageService;
+pub use requisition_skill_service::RequisitionSkillService;
+// <<< CUSTOM
 // END CUSTOM
