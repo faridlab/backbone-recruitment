@@ -16,11 +16,31 @@ user_owned:
   # - "src/presentation/http/guarded_routes.rs"
   # ADR-005 producer: hire() emits recruitment.hired outbox event in-tx with the offer acceptance.
   - "src/application/service/job_offer_write_service.rs"
+  # Stage-driven application transitions (move_stage / refuse / create) — the one
+  # door for stage changes; owns the requisition vacancy coupling.
+  - "src/application/service/job_application_write_service.rs"
+  # Interview scheduling verbs + the interviewer-notification activity port.
+  - "src/application/service/interview_write_service.rs"
+  # Requisition skill requirements (set/replace) with cross-schema skill validation.
+  - "src/application/service/requisition_skill_write_service.rs"
+  # Outbound seams kept as local port traits so this module never depends on the
+  # mail module: the host app wires real adapters; defaults fail closed.
+  - "src/application/service/activity_port.rs"
+  - "src/application/service/letter_port.rs"
+  # {{placeholder}} renderer for offer-letter bodies (mail has no template engine).
+  - "src/application/service/offer_letter_render.rs"
+  # Company-authenticated HTTP surface (verbs + guarded CRUD).
+  - "src/presentation/http/guarded_routes.rs"
+
+  # Hand-written migrations that reshape published tables (append-only; the
+  # generator only emits create-table files for new entities).
+  - "migrations/20260817120000_stage_ref_reshape.up.sql"
+  - "migrations/20260817120000_stage_ref_reshape.down.sql"
 
   # Behavior tests (the golden cases / oracle) + BDD features.
   - "tests/features/**"
-  # - "tests/*_golden_cases.rs"
-  # - "tests/integrity_probes.rs"
+  - "tests/hire_flow.rs"
+  - "tests/integrity_probes.rs"
 
   # Hand-authored module documentation.
   - "docs/**"

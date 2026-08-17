@@ -1,6 +1,6 @@
 [package]
 name = "backbone-recruitment"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
 description = "Minimal Backbone Framework module skeleton"
 
@@ -19,7 +19,7 @@ path = "src/lib.rs"
 # -----------------------------------------------------------------------------
 backbone-core = { git = "https://github.com/faridlab/backbone-framework", tag = "v2.7.0", features = ["postgres"] }
 backbone-orm = { git = "https://github.com/faridlab/backbone-framework", tag = "v2.7.0" }
-backbone-auth = { git = "https://github.com/faridlab/backbone-framework", tag = "v2.7.0" }
+backbone-auth = { git = "https://github.com/faridlab/backbone-framework", tag = "v2.7.1", features = ["axum"] }
 backbone-messaging = { git = "https://github.com/faridlab/backbone-framework", tag = "v2.7.0" }
 # Transactional-outbox producer (ADR-005): stages `recruitment.hired` in the same tx as the offer-accept.
 # v2.7.4 is where backbone-outbox 0.2.0 (with the company-RLS fence) ships; the HR composer's [patch]
