@@ -2,8 +2,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
-
-use super::ApplicationStatus;
 use super::AuditMetadata;
 
 /// Strongly-typed ID for JobApplication
@@ -53,7 +51,12 @@ pub struct JobApplication {
     pub company_id: Uuid,
     pub candidate_id: Uuid,
     pub requisition_id: Uuid,
-    pub status: ApplicationStatus,
+    pub stage_id: Uuid,
+    pub last_stage_id: Option<Uuid>,
+    pub stage_updated_at: Option<DateTime<Utc>>,
+    pub date_closed: Option<DateTime<Utc>>,
+    pub refuse_reason: Option<String>,
+    pub refused_at: Option<DateTime<Utc>>,
     pub applied_at: DateTime<Utc>,
     #[serde(default)]
     #[sqlx(json)]
@@ -63,17 +66,22 @@ pub struct JobApplication {
 impl JobApplication {
     /// Create a builder for JobApplication
     pub fn builder() -> JobApplicationBuilder {
-        JobApplicationBuilder::default()
+        <JobApplicationBuilder as Default>::default()
     }
 
     /// Create a new JobApplication with required fields
-    pub fn new(company_id: Uuid, candidate_id: Uuid, requisition_id: Uuid, status: ApplicationStatus, applied_at: DateTime<Utc>) -> Self {
+    pub fn new(company_id: Uuid, candidate_id: Uuid, requisition_id: Uuid, stage_id: Uuid, applied_at: DateTime<Utc>) -> Self {
         Self {
             id: Uuid::new_v4(),
             company_id,
             candidate_id,
             requisition_id,
-            status,
+            stage_id,
+            last_stage_id: None,
+            stage_updated_at: None,
+            date_closed: None,
+            refuse_reason: None,
+            refused_at: None,
             applied_at,
             metadata: AuditMetadata::default(),
         }
@@ -129,11 +137,40 @@ impl JobApplication {
         self.metadata.deleted_by.as_ref()
     }
 
-    /// Get the current status
-    pub fn status(&self) -> &ApplicationStatus {
-        &self.status
+
+    // ==========================================================
+    // Fluent Setters (with_* for optional fields)
+    // ==========================================================
+
+    /// Set the last_stage_id field (chainable)
+    pub fn with_last_stage_id(mut self, value: Uuid) -> Self {
+        self.last_stage_id = Some(value);
+        self
     }
 
+    /// Set the stage_updated_at field (chainable)
+    pub fn with_stage_updated_at(mut self, value: DateTime<Utc>) -> Self {
+        self.stage_updated_at = Some(value);
+        self
+    }
+
+    /// Set the date_closed field (chainable)
+    pub fn with_date_closed(mut self, value: DateTime<Utc>) -> Self {
+        self.date_closed = Some(value);
+        self
+    }
+
+    /// Set the refuse_reason field (chainable)
+    pub fn with_refuse_reason(mut self, value: String) -> Self {
+        self.refuse_reason = Some(value);
+        self
+    }
+
+    /// Set the refused_at field (chainable)
+    pub fn with_refused_at(mut self, value: DateTime<Utc>) -> Self {
+        self.refused_at = Some(value);
+        self
+    }
 
     // ==========================================================
     // Partial Update
@@ -152,8 +189,23 @@ impl JobApplication {
                 "requisition_id" => {
                     if let Ok(v) = serde_json::from_value(value) { self.requisition_id = v; }
                 }
-                "status" => {
-                    if let Ok(v) = serde_json::from_value(value) { self.status = v; }
+                "stage_id" => {
+                    if let Ok(v) = serde_json::from_value(value) { self.stage_id = v; }
+                }
+                "last_stage_id" => {
+                    if let Ok(v) = serde_json::from_value(value) { self.last_stage_id = v; }
+                }
+                "stage_updated_at" => {
+                    if let Ok(v) = serde_json::from_value(value) { self.stage_updated_at = v; }
+                }
+                "date_closed" => {
+                    if let Ok(v) = serde_json::from_value(value) { self.date_closed = v; }
+                }
+                "refuse_reason" => {
+                    if let Ok(v) = serde_json::from_value(value) { self.refuse_reason = v; }
+                }
+                "refused_at" => {
+                    if let Ok(v) = serde_json::from_value(value) { self.refused_at = v; }
                 }
                 "applied_at" => {
                     if let Ok(v) = serde_json::from_value(value) { self.applied_at = v; }
@@ -215,7 +267,8 @@ impl backbone_orm::EntityRepoMeta for JobApplication {
         m.insert("company_id".to_string(), "uuid".to_string());
         m.insert("candidate_id".to_string(), "uuid".to_string());
         m.insert("requisition_id".to_string(), "uuid".to_string());
-        m.insert("status".to_string(), "application_status".to_string());
+        m.insert("stage_id".to_string(), "uuid".to_string());
+        m.insert("last_stage_id".to_string(), "uuid".to_string());
         m
     }
     fn search_fields() -> &'static [&'static str] {
@@ -235,7 +288,12 @@ pub struct JobApplicationBuilder {
     company_id: Option<Uuid>,
     candidate_id: Option<Uuid>,
     requisition_id: Option<Uuid>,
-    status: Option<ApplicationStatus>,
+    stage_id: Option<Uuid>,
+    last_stage_id: Option<Uuid>,
+    stage_updated_at: Option<DateTime<Utc>>,
+    date_closed: Option<DateTime<Utc>>,
+    refuse_reason: Option<String>,
+    refused_at: Option<DateTime<Utc>>,
     applied_at: Option<DateTime<Utc>>,
 }
 
@@ -258,9 +316,39 @@ impl JobApplicationBuilder {
         self
     }
 
-    /// Set the status field (default: `ApplicationStatus::default()`)
-    pub fn status(mut self, value: ApplicationStatus) -> Self {
-        self.status = Some(value);
+    /// Set the stage_id field (required)
+    pub fn stage_id(mut self, value: Uuid) -> Self {
+        self.stage_id = Some(value);
+        self
+    }
+
+    /// Set the last_stage_id field (optional)
+    pub fn last_stage_id(mut self, value: Uuid) -> Self {
+        self.last_stage_id = Some(value);
+        self
+    }
+
+    /// Set the stage_updated_at field (optional)
+    pub fn stage_updated_at(mut self, value: DateTime<Utc>) -> Self {
+        self.stage_updated_at = Some(value);
+        self
+    }
+
+    /// Set the date_closed field (optional)
+    pub fn date_closed(mut self, value: DateTime<Utc>) -> Self {
+        self.date_closed = Some(value);
+        self
+    }
+
+    /// Set the refuse_reason field (optional)
+    pub fn refuse_reason(mut self, value: String) -> Self {
+        self.refuse_reason = Some(value);
+        self
+    }
+
+    /// Set the refused_at field (optional)
+    pub fn refused_at(mut self, value: DateTime<Utc>) -> Self {
+        self.refused_at = Some(value);
         self
     }
 
@@ -277,13 +365,19 @@ impl JobApplicationBuilder {
         let company_id = self.company_id.ok_or_else(|| "company_id is required".to_string())?;
         let candidate_id = self.candidate_id.ok_or_else(|| "candidate_id is required".to_string())?;
         let requisition_id = self.requisition_id.ok_or_else(|| "requisition_id is required".to_string())?;
+        let stage_id = self.stage_id.ok_or_else(|| "stage_id is required".to_string())?;
 
         Ok(JobApplication {
             id: Uuid::new_v4(),
             company_id,
             candidate_id,
             requisition_id,
-            status: self.status.unwrap_or(ApplicationStatus::default()),
+            stage_id,
+            last_stage_id: self.last_stage_id,
+            stage_updated_at: self.stage_updated_at,
+            date_closed: self.date_closed,
+            refuse_reason: self.refuse_reason,
+            refused_at: self.refused_at,
             applied_at: self.applied_at.unwrap_or(Utc::now()),
             metadata: AuditMetadata::default(),
         })

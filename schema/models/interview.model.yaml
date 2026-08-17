@@ -59,7 +59,8 @@ models:
       status:
         type: InterviewStatus
         attributes: ["@required", "@default(scheduled)"]
-        description: "Interview status"
+        lifecycle: hand_set
+        description: "Interview status (hand-set by the schedule/complete/cancel verbs)"
 
       metadata:
         type: Metadata

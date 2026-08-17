@@ -24,17 +24,59 @@ use rust_decimal::Decimal;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
-/// Connect to the test DB, or `None` to skip. Prefers `DATABASE_URL`; falls back to a local dev default.
+/// Connect to a dedicated scratch database this test rebuilds from scratch,
+/// or `None` to skip.
+///
+/// The flow's schema is hermetic (minimal inline DDL below), so the test must
+/// NOT run against a database that already carries the full module migrations:
+/// the `CREATE ... IF NOT EXISTS` guards would silently keep the real, stricter
+/// tables (e.g. requisitions require a title) and the seeds would violate
+/// them. Credentials/host come from `DATABASE_URL` (local dev default
+/// otherwise); the database itself is always a private scratch DB.
 async fn connect() -> Option<PgPool> {
     let url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/backbone_hr".into());
-    match PgPool::connect(&url).await {
+    let (prefix, _) = url.trim_end_matches('/').rsplit_once('/')?;
+    let admin = match PgPool::connect(&format!("{prefix}/postgres")).await {
+        Ok(p) => p,
+        Err(e) => {
+            eprintln!("skip hire_flow: could not reach `{prefix}/postgres` ({e}); set DATABASE_URL to run");
+            return None;
+        }
+    };
+    let scratch = "recruitment_hire_flow_test";
+    let _ = sqlx::query(&format!(r#"DROP DATABASE IF EXISTS "{scratch}" WITH (FORCE)"#))
+        .execute(&admin)
+        .await;
+    sqlx::query(&format!(r#"CREATE DATABASE "{scratch}""#))
+        .execute(&admin)
+        .await
+        .ok()?;
+    admin.close().await;
+    match PgPool::connect(&format!("{prefix}/{scratch}")).await {
         Ok(p) => Some(p),
         Err(e) => {
-            eprintln!("skip hire_flow: could not connect to `{url}` ({e}); set DATABASE_URL to run");
+            eprintln!("skip hire_flow: could not connect to scratch db ({e})");
             None
         }
     }
+}
+
+/// Serialize the tests in this binary against each other. Two hazards make
+/// concurrency wrong here, and one guard fixes both: (1) `CREATE SCHEMA IF
+/// NOT EXISTS` (also inside `outbox::migrate`) can still raise a unique
+/// violation when two connections race the same schema name; (2) the setup
+/// TRUNCATEs the shared seed tables, which would wipe another test's
+/// mid-flight rows. Hold the returned guard for the WHOLE test body.
+async fn setup_locked(
+    pool: &PgPool,
+) -> sqlx::Result<tokio::sync::MutexGuard<'static, ()>> {
+    static SETUP_LOCK: std::sync::OnceLock<tokio::sync::Mutex<()>> =
+        std::sync::OnceLock::new();
+    let lock: &'static _ = SETUP_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
+    let guard = lock.lock().await;
+    setup(pool).await?;
+    Ok(guard)
 }
 
 /// Build the minimal schema the flow exercises. Idempotent (CREATE ... IF NOT EXISTS), so it is safe to
@@ -73,7 +115,24 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                company_id UUID NOT NULL,
                department_id UUID,
-               position_id UUID
+               position_id UUID,
+               title TEXT,
+               headcount INTEGER NOT NULL DEFAULT 1,
+               filled_headcount INTEGER NOT NULL DEFAULT 0,
+               status TEXT NOT NULL DEFAULT 'open'
+           )"#,
+    )
+    .execute(pool)
+    .await?;
+    // The pipeline config: applications reference a stage row; the hire guard
+    // reads its is_hired flag.
+    sqlx::query(
+        r#"CREATE TABLE IF NOT EXISTS recruitment.recruitment_stages (
+               id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+               company_id UUID NOT NULL,
+               name TEXT NOT NULL,
+               sequence INTEGER NOT NULL DEFAULT 10,
+               is_hired BOOLEAN NOT NULL DEFAULT FALSE
            )"#,
     )
     .execute(pool)
@@ -83,7 +142,9 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                company_id UUID NOT NULL,
                candidate_id UUID NOT NULL,
-               requisition_id UUID NOT NULL
+               requisition_id UUID NOT NULL,
+               stage_id UUID NOT NULL REFERENCES recruitment.recruitment_stages(id),
+               refused_at TIMESTAMPTZ
            )"#,
     )
     .execute(pool)
@@ -143,7 +204,7 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
         .expect("outbox migrate employee");
 
     // Isolate this run from any prior data in the shared shapes.
-    sqlx::query("TRUNCATE recruitment.job_offers, recruitment.job_applications, recruitment.candidates, recruitment.job_requisitions")
+    sqlx::query("TRUNCATE recruitment.job_offers, recruitment.job_applications, recruitment.candidates, recruitment.job_requisitions, recruitment.recruitment_stages")
         .execute(pool)
         .await?;
     sqlx::query("TRUNCATE employee.employments, employee.employees")
@@ -183,13 +244,26 @@ async fn seed_hireable_offer(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
     .unwrap()
     .get("id");
 
+    // A two-stage pipeline; the application sits in the is_hired one so the
+    // producer's hired-stage guard passes.
+    let hired_stage_id: Uuid = sqlx::query(
+        "INSERT INTO recruitment.recruitment_stages (company_id, name, sequence, is_hired)
+         VALUES ($1,'Hired',90,TRUE) RETURNING id",
+    )
+    .bind(company_id)
+    .fetch_one(pool)
+    .await
+    .unwrap()
+    .get("id");
+
     let application_id: Uuid = sqlx::query(
-        "INSERT INTO recruitment.job_applications (company_id, candidate_id, requisition_id)
-         VALUES ($1,$2,$3) RETURNING id",
+        "INSERT INTO recruitment.job_applications (company_id, candidate_id, requisition_id, stage_id)
+         VALUES ($1,$2,$3,$4) RETURNING id",
     )
     .bind(company_id)
     .bind(candidate_id)
     .bind(requisition_id)
+    .bind(hired_stage_id)
     .fetch_one(pool)
     .await
     .unwrap()
@@ -216,14 +290,14 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
         Some(p) => p,
         None => return Ok(()),
     };
-    setup(&pool).await?;
+    let _guard = setup_locked(&pool).await?;
 
     let (company_id, offer_id, department_id, position_id) = seed_hireable_offer(&pool).await;
 
     // ── 1. PRODUCER: hire() marks the offer accepted + stages recruitment.hired, in one tx. ──────
     let svc = JobOfferWriteService::new(pool.clone());
     let event_id = svc
-        .hire(offer_id)
+        .hire(company_id, offer_id)
         .await
         .expect("fresh hire")
         .expect("a fresh hire stages an event");
@@ -358,13 +432,13 @@ async fn hire_is_idempotent_at_the_producer_too() -> Result<(), Box<dyn std::err
         Some(p) => p,
         None => return Ok(()),
     };
-    setup(&pool).await?;
+    let _guard = setup_locked(&pool).await?;
 
     let (_company_id, offer_id, _, _) = seed_hireable_offer(&pool).await;
     let svc = JobOfferWriteService::new(pool.clone());
 
-    let first = svc.hire(offer_id).await?.expect("first hire stages an event");
-    let second = svc.hire(offer_id).await?;
+    let first = svc.hire(_company_id, offer_id).await?.expect("first hire stages an event");
+    let second = svc.hire(_company_id, offer_id).await?;
     assert!(second.is_none(), "re-hire of an accepted offer stages no second event");
 
     assert_eq!(

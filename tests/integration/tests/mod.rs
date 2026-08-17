@@ -11,6 +11,9 @@ pub mod interview_api_test;
 pub mod job_application_api_test;
 pub mod job_offer_api_test;
 pub mod job_requisition_api_test;
+pub mod offer_letter_template_api_test;
+pub mod recruitment_stage_api_test;
+pub mod requisition_skill_api_test;
 
 // Re-exports for convenience
 pub use crud_test_base::*;
@@ -19,3 +22,6 @@ pub use interview_api_test::*;
 pub use job_application_api_test::*;
 pub use job_offer_api_test::*;
 pub use job_requisition_api_test::*;
+pub use offer_letter_template_api_test::*;
+pub use recruitment_stage_api_test::*;
+pub use requisition_skill_api_test::*;

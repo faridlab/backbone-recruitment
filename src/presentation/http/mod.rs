@@ -10,8 +10,13 @@ pub mod interview_handler;
 pub mod job_application_handler;
 pub mod job_offer_handler;
 pub mod job_requisition_handler;
+pub mod offer_letter_template_handler;
+pub mod recruitment_stage_handler;
+pub mod requisition_skill_handler;
 
 // <<< CUSTOM
+// Hand-authored guarded composition (read-only CRUD + validated verbs). User-owned.
+pub mod guarded_routes;
 // END CUSTOM
 
 // Re-exports
@@ -20,5 +25,8 @@ pub use interview_handler::{create_interview_routes, create_interview_read_route
 pub use job_application_handler::{create_job_application_routes, create_job_application_read_routes, create_job_application_write_routes};
 pub use job_offer_handler::{create_job_offer_routes, create_job_offer_read_routes, create_job_offer_write_routes};
 pub use job_requisition_handler::{create_job_requisition_routes, create_job_requisition_read_routes, create_job_requisition_write_routes};
+pub use offer_letter_template_handler::{create_offer_letter_template_routes, create_offer_letter_template_read_routes, create_offer_letter_template_write_routes};
+pub use recruitment_stage_handler::{create_recruitment_stage_routes, create_recruitment_stage_read_routes, create_recruitment_stage_write_routes};
+pub use requisition_skill_handler::{create_requisition_skill_routes, create_requisition_skill_read_routes, create_requisition_skill_write_routes};
 // <<< CUSTOM
 // END CUSTOM

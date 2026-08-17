@@ -37,6 +37,9 @@ pub use application::service::InterviewService;
 pub use application::service::JobApplicationService;
 pub use application::service::JobOfferService;
 pub use application::service::JobRequisitionService;
+pub use application::service::OfferLetterTemplateService;
+pub use application::service::RecruitmentStageService;
+pub use application::service::RequisitionSkillService;
 
 // Re-exports - Workflows
 pub use application::workflows::*;
@@ -64,9 +67,22 @@ pub struct RecruitmentModule {
     pub(crate) job_offer_service: Arc<JobOfferService>,
     pub(crate) job_requisition_service: Arc<JobRequisitionService>,
     // <<< CUSTOM FIELDS
-    /// The hire write-service (ADR-005 producer): offer→accepted + `recruitment.hired` outbox emit.
-    /// Public so the composer / tests can drive hires (`module.job_offer_write_service.hire(id)`).
+    /// Hand-written write services, public so the composer / tests can drive the verbs directly.
+    /// - offers: extend / hire (the hire-handoff producer: offer→accepted + `recruitment.hired`
+    ///   outbox emit, atomically) / decline / withdraw, plus the offer-letter seam.
+    /// - applications: the stage-driven transition engine (create / move_stage / refuse) owning
+    ///   the requisition vacancy coupling.
+    /// - interviews: schedule / complete / cancel, plus the interviewer-activity seam.
+    /// - requisition skills: set / list, validated against the learning module's skills.
     pub job_offer_write_service: Arc<application::service::JobOfferWriteService>,
+    pub job_application_write_service: Arc<application::service::JobApplicationWriteService>,
+    pub interview_write_service: Arc<application::service::InterviewWriteService>,
+    pub requisition_skill_write_service: Arc<application::service::RequisitionSkillWriteService>,
+    // END CUSTOM
+    pub(crate) offer_letter_template_service: Arc<OfferLetterTemplateService>,
+    pub(crate) recruitment_stage_service: Arc<RecruitmentStageService>,
+    pub(crate) requisition_skill_service: Arc<RequisitionSkillService>,
+    // <<< CUSTOM FIELDS
     // END CUSTOM
 }
 
@@ -88,6 +104,9 @@ impl RecruitmentModule {
             create_job_application_routes,
             create_job_offer_routes,
             create_job_requisition_routes,
+            create_offer_letter_template_routes,
+            create_recruitment_stage_routes,
+            create_requisition_skill_routes,
         };
 
         Router::new()
@@ -96,6 +115,9 @@ impl RecruitmentModule {
             .merge(create_job_application_routes(self.job_application_service.clone()))
             .merge(create_job_offer_routes(self.job_offer_service.clone()))
             .merge(create_job_requisition_routes(self.job_requisition_service.clone()))
+            .merge(create_offer_letter_template_routes(self.offer_letter_template_service.clone()))
+            .merge(create_recruitment_stage_routes(self.recruitment_stage_service.clone()))
+            .merge(create_requisition_skill_routes(self.requisition_skill_service.clone()))
     }
 
     /// Deprecated alias for [`Self::all_crud_routes`]. `routes()` reads like
@@ -103,15 +125,58 @@ impl RecruitmentModule {
     /// mount exposes unguarded writes. Compose a guarded router (read + validated
     /// writes) for production, or call `all_crud_routes()` to opt into the full
     /// unguarded surface explicitly.
-    #[deprecated(note = "mounts unvalidated generic CRUD on every entity; compose a guarded router for production, or call all_crud_routes() for the intentional full/unguarded surface")]
+    #[deprecated(note = "mounts unvalidated generic CRUD; prefer readonly_routes() + validated writes, or all_crud_routes() for the full/unguarded surface")]
     pub fn routes(&self) -> Router {
         self.all_crud_routes()
     }
+
+    /// Read-only routes for every entity (GET endpoints only) — the safe base.
+    ///
+    /// Generic mutation can't reach here, so this surface cannot bypass a
+    /// validated write service's invariants. Use this as the production base and
+    /// merge validated write routes (or a write service's HTTP layer) onto it.
+    pub fn readonly_routes(&self) -> Router {
+        use presentation::http::{
+            create_candidate_read_routes,
+            create_interview_read_routes,
+            create_job_application_read_routes,
+            create_job_offer_read_routes,
+            create_job_requisition_read_routes,
+            create_offer_letter_template_read_routes,
+            create_recruitment_stage_read_routes,
+            create_requisition_skill_read_routes,
+        };
+
+        Router::new()
+            .merge(create_candidate_read_routes(self.candidate_service.clone()))
+            .merge(create_interview_read_routes(self.interview_service.clone()))
+            .merge(create_job_application_read_routes(self.job_application_service.clone()))
+            .merge(create_job_offer_read_routes(self.job_offer_service.clone()))
+            .merge(create_job_requisition_read_routes(self.job_requisition_service.clone()))
+            .merge(create_offer_letter_template_read_routes(self.offer_letter_template_service.clone()))
+            .merge(create_recruitment_stage_read_routes(self.recruitment_stage_service.clone()))
+            .merge(create_requisition_skill_read_routes(self.requisition_skill_service.clone()))
+    }
+
+    // <<< CUSTOM METHODS
+    /// The guarded composition: read-only generic CRUD for every entity plus
+    /// the validated verbs (stage moves, refusals, offer lifecycle, interview
+    /// scheduling, skill sets). **Prefer this over `all_crud_routes()` for any
+    /// real deployment** — generic writes on applications/offers/interviews
+    /// would bypass the transition invariants.
+    pub fn guarded_routes(&self) -> Router {
+        presentation::http::guarded_routes::create_guarded_recruitment_routes(self)
+    }
+    // END CUSTOM
 }
 
 /// Builder for RecruitmentModule
 pub struct RecruitmentModuleBuilder {
     db_pool: Option<PgPool>,
+    // <<< CUSTOM - optional outbound seams (default: unwired, fail-closed)
+    activity_sink: Option<Arc<dyn application::service::ActivitySink>>,
+    letter_sink: Option<Arc<dyn application::service::OfferLetterSink>>,
+    // END CUSTOM
 }
 
 impl RecruitmentModuleBuilder {
@@ -119,6 +184,10 @@ impl RecruitmentModuleBuilder {
     pub fn new() -> Self {
         Self {
             db_pool: None,
+            // <<< CUSTOM
+            activity_sink: None,
+            letter_sink: None,
+            // END CUSTOM
         }
     }
 
@@ -129,6 +198,19 @@ impl RecruitmentModuleBuilder {
     }
 
     // <<< CUSTOM - custom builder methods
+    /// Wire a real activity adapter (interviewer notifications). Without one,
+    /// a scheduling request that explicitly asks to notify fails closed.
+    pub fn with_activity_sink(mut self, sink: Arc<dyn application::service::ActivitySink>) -> Self {
+        self.activity_sink = Some(sink);
+        self
+    }
+
+    /// Wire a real offer-letter adapter. Without one, extending an offer that
+    /// references a letter template fails closed.
+    pub fn with_letter_sink(mut self, sink: Arc<dyn application::service::OfferLetterSink>) -> Self {
+        self.letter_sink = Some(sink);
+        self
+    }
     // END CUSTOM
 
     /// Build the module with configured dependencies
@@ -157,9 +239,39 @@ impl RecruitmentModuleBuilder {
         let job_requisition_service = Arc::new(JobRequisitionService::with_repository(job_requisition_repository.clone()));
 
         // <<< CUSTOM
-        // ADR-005 producer: bound to the same pool as the repos. `hire()` opens its own tx around the
-        // offer-accept + the outbox stage; no shared mutable state, so an Arc is purely for cheap reuse.
-        let job_offer_write_service = Arc::new(application::service::JobOfferWriteService::new(db_pool.clone()));
+        // Hand-written write services, bound to the same pool as the repos. Each opens its own
+        // scoped transaction per verb; no shared mutable state, so an Arc is purely for cheap reuse.
+        // Outbound seams default to unwired (fail-closed) unless the builder wired real adapters.
+        let unwired_activity: Arc<dyn application::service::ActivitySink> =
+            Arc::new(application::service::UnwiredActivitySink);
+        let unwired_letters: Arc<dyn application::service::OfferLetterSink> =
+            Arc::new(application::service::UnwiredOfferLetterSink);
+        let activity_sink = self.activity_sink.clone().unwrap_or(unwired_activity);
+        let letter_sink = self.letter_sink.clone().unwrap_or(unwired_letters);
+        let job_offer_write_service = Arc::new(
+            application::service::JobOfferWriteService::with_letter_sink(db_pool.clone(), letter_sink),
+        );
+        let job_application_write_service =
+            Arc::new(application::service::JobApplicationWriteService::new(db_pool.clone()));
+        let interview_write_service = Arc::new(
+            application::service::InterviewWriteService::with_activity_sink(db_pool.clone(), activity_sink),
+        );
+        let requisition_skill_write_service =
+            Arc::new(application::service::RequisitionSkillWriteService::new(db_pool.clone()));
+        // END CUSTOM
+        // OfferLetterTemplate service
+        let offer_letter_template_repository = Arc::new(OfferLetterTemplateRepository::new(db_pool.clone()));
+        let offer_letter_template_service = Arc::new(OfferLetterTemplateService::with_repository(offer_letter_template_repository.clone()));
+
+        // RecruitmentStage service
+        let recruitment_stage_repository = Arc::new(RecruitmentStageRepository::new(db_pool.clone()));
+        let recruitment_stage_service = Arc::new(RecruitmentStageService::with_repository(recruitment_stage_repository.clone()));
+
+        // RequisitionSkill service
+        let requisition_skill_repository = Arc::new(RequisitionSkillRepository::new(db_pool.clone()));
+        let requisition_skill_service = Arc::new(RequisitionSkillService::with_repository(requisition_skill_repository.clone()));
+
+        // <<< CUSTOM
         // END CUSTOM
 
         Ok(RecruitmentModule {
@@ -170,6 +282,14 @@ impl RecruitmentModuleBuilder {
             job_requisition_service,
             // <<< CUSTOM
             job_offer_write_service,
+            job_application_write_service,
+            interview_write_service,
+            requisition_skill_write_service,
+            // END CUSTOM
+            offer_letter_template_service,
+            recruitment_stage_service,
+            requisition_skill_service,
+            // <<< CUSTOM
             // END CUSTOM
         })
     }

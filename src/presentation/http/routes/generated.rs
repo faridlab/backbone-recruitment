@@ -14,6 +14,9 @@ use super::{
     job_application_handler::create_job_application_routes,
     job_offer_handler::create_job_offer_routes,
     job_requisition_handler::create_job_requisition_routes,
+    offer_letter_template_handler::create_offer_letter_template_routes,
+    recruitment_stage_handler::create_recruitment_stage_routes,
+    requisition_skill_handler::create_requisition_skill_routes,
 };
 
 use crate::application::service::{
@@ -22,6 +25,9 @@ use crate::application::service::{
     JobApplicationService,
     JobOfferService,
     JobRequisitionService,
+    OfferLetterTemplateService,
+    RecruitmentStageService,
+    RequisitionSkillService,
 };
 
 /// Services collection for all CRUD endpoints
@@ -31,6 +37,9 @@ pub struct HttpServices {
     pub job_application: Arc<JobApplicationService>,
     pub job_offer: Arc<JobOfferService>,
     pub job_requisition: Arc<JobRequisitionService>,
+    pub offer_letter_template: Arc<OfferLetterTemplateService>,
+    pub recruitment_stage: Arc<RecruitmentStageService>,
+    pub requisition_skill: Arc<RequisitionSkillService>,
 }
 
 /// Configure all HTTP routes for this module using Axum and BackboneCrudHandler.
@@ -60,6 +69,12 @@ pub fn configure_routes(services: HttpServices) -> Router {
         .merge(create_job_offer_routes(services.job_offer))
         // JobRequisition routes (12 Backbone endpoints)
         .merge(create_job_requisition_routes(services.job_requisition))
+        // OfferLetterTemplate routes (12 Backbone endpoints)
+        .merge(create_offer_letter_template_routes(services.offer_letter_template))
+        // RecruitmentStage routes (12 Backbone endpoints)
+        .merge(create_recruitment_stage_routes(services.recruitment_stage))
+        // RequisitionSkill routes (12 Backbone endpoints)
+        .merge(create_requisition_skill_routes(services.requisition_skill))
 }
 
 /// Create an individual entity's routes (for modular configuration)
@@ -84,6 +99,18 @@ pub mod individual {
 
     pub fn job_requisition_routes(service: Arc<JobRequisitionService>) -> Router {
         create_job_requisition_routes(service)
+    }
+
+    pub fn offer_letter_template_routes(service: Arc<OfferLetterTemplateService>) -> Router {
+        create_offer_letter_template_routes(service)
+    }
+
+    pub fn recruitment_stage_routes(service: Arc<RecruitmentStageService>) -> Router {
+        create_recruitment_stage_routes(service)
+    }
+
+    pub fn requisition_skill_routes(service: Arc<RequisitionSkillService>) -> Router {
+        create_requisition_skill_routes(service)
     }
 
 }

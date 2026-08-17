@@ -6,6 +6,7 @@
 //! field rules. Extend in the `// <<< CUSTOM` zone.
 
 use backbone_core::{EntityValidator, ValidationErrors, ValidationError};
+use backbone_core::{OptionalNotBlank};
 use crate::domain::entity::JobApplication;
 
 /// Validator type alias for JobApplication entities.
@@ -14,9 +15,9 @@ pub type JobApplicationValidator = EntityValidator<JobApplication>;
 /// Build a validator for JobApplication with all schema-defined field rules.
 pub fn job_application_validator() -> JobApplicationValidator {
     EntityValidator::new()
+        .rule(OptionalNotBlank::new("refuse_reason", |e: &JobApplication| e.refuse_reason.as_deref()))
     // <<< CUSTOM RULES
     // END CUSTOM RULES
-        // No schema-derived rules — add custom rules above.
 }
 
 // <<< CUSTOM

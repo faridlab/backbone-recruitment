@@ -55,6 +55,7 @@ pub struct JobOffer {
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
     pub employment_type: Option<String>,
+    pub letter_template_id: Option<Uuid>,
     pub status: OfferStatus,
     pub offered_at: Option<DateTime<Utc>>,
     pub accepted_at: Option<DateTime<Utc>>,
@@ -66,7 +67,7 @@ pub struct JobOffer {
 impl JobOffer {
     /// Create a builder for JobOffer
     pub fn builder() -> JobOfferBuilder {
-        JobOfferBuilder::default()
+        <JobOfferBuilder as Default>::default()
     }
 
     /// Create a new JobOffer with required fields
@@ -77,6 +78,7 @@ impl JobOffer {
             application_id,
             proposed_salary: None,
             employment_type: None,
+            letter_template_id: None,
             status,
             offered_at: None,
             accepted_at: None,
@@ -156,6 +158,12 @@ impl JobOffer {
         self
     }
 
+    /// Set the letter_template_id field (chainable)
+    pub fn with_letter_template_id(mut self, value: Uuid) -> Self {
+        self.letter_template_id = Some(value);
+        self
+    }
+
     /// Set the offered_at field (chainable)
     pub fn with_offered_at(mut self, value: DateTime<Utc>) -> Self {
         self.offered_at = Some(value);
@@ -187,6 +195,9 @@ impl JobOffer {
                 }
                 "employment_type" => {
                     if let Ok(v) = serde_json::from_value(value) { self.employment_type = v; }
+                }
+                "letter_template_id" => {
+                    if let Ok(v) = serde_json::from_value(value) { self.letter_template_id = v; }
                 }
                 "status" => {
                     if let Ok(v) = serde_json::from_value(value) { self.status = v; }
@@ -253,6 +264,7 @@ impl backbone_orm::EntityRepoMeta for JobOffer {
         m.insert("id".to_string(), "uuid".to_string());
         m.insert("company_id".to_string(), "uuid".to_string());
         m.insert("application_id".to_string(), "uuid".to_string());
+        m.insert("letter_template_id".to_string(), "uuid".to_string());
         m.insert("status".to_string(), "offer_status".to_string());
         m
     }
@@ -274,6 +286,7 @@ pub struct JobOfferBuilder {
     application_id: Option<Uuid>,
     proposed_salary: Option<Decimal>,
     employment_type: Option<String>,
+    letter_template_id: Option<Uuid>,
     status: Option<OfferStatus>,
     offered_at: Option<DateTime<Utc>>,
     accepted_at: Option<DateTime<Utc>>,
@@ -301,6 +314,12 @@ impl JobOfferBuilder {
     /// Set the employment_type field (optional)
     pub fn employment_type(mut self, value: String) -> Self {
         self.employment_type = Some(value);
+        self
+    }
+
+    /// Set the letter_template_id field (optional)
+    pub fn letter_template_id(mut self, value: Uuid) -> Self {
+        self.letter_template_id = Some(value);
         self
     }
 
@@ -335,7 +354,8 @@ impl JobOfferBuilder {
             application_id,
             proposed_salary: self.proposed_salary,
             employment_type: self.employment_type,
-            status: self.status.unwrap_or(OfferStatus::default()),
+            letter_template_id: self.letter_template_id,
+            status: self.status.unwrap_or_default(),
             offered_at: self.offered_at,
             accepted_at: self.accepted_at,
             metadata: AuditMetadata::default(),

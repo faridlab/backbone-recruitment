@@ -14,12 +14,18 @@ mod interview_seeder;
 mod job_application_seeder;
 mod job_offer_seeder;
 mod job_requisition_seeder;
+mod offer_letter_template_seeder;
+mod recruitment_stage_seeder;
+mod requisition_skill_seeder;
 
 pub use candidate_seeder::SeedCandidateSeeder;
 pub use interview_seeder::SeedInterviewSeeder;
 pub use job_application_seeder::SeedJobApplicationSeeder;
 pub use job_offer_seeder::SeedJobOfferSeeder;
 pub use job_requisition_seeder::SeedJobRequisitionSeeder;
+pub use offer_letter_template_seeder::SeedOfferLetterTemplateSeeder;
+pub use recruitment_stage_seeder::SeedRecruitmentStageSeeder;
+pub use requisition_skill_seeder::SeedRequisitionSkillSeeder;
 
 // ============================================================================
 // SEEDER TRAIT

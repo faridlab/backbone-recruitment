@@ -1,0 +1,52 @@
+# =============================================================================
+# Domain: recruitment
+# Entity: OfferLetterTemplate
+# Description: A reusable offer letter: subject + body carrying {{placeholder}}
+#              tokens that are rendered against the offer + candidate at extend
+#              time. Rendering is a plain token substitution owned here (the
+#              messaging domain stores templates as raw text and has no render
+#              engine); the rendered letter is HANDED to the letter sink port,
+#              which the composer wires to a real delivery channel. Keeping the
+#              template here means offer wording is company data, reviewable
+#              and versioned like any other record.
+# =============================================================================
+
+models:
+  - name: OfferLetterTemplate
+    collection: offer_letter_templates
+    description: "A reusable offer-letter subject+body with {{placeholder}} tokens."
+
+    fields:
+      id:
+        type: uuid
+        attributes: ["@id", "@default(uuid)"]
+        description: "Unique template id"
+
+      company_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Owning company # logical FK organization.Company.id"
+
+      name:
+        type: string
+        attributes: ["@required", "@length(max=120)"]
+        description: "Template name (shown when picking a letter for an offer)"
+
+      subject:
+        type: string
+        attributes: ["@required", "@length(max=300)"]
+        description: "Letter subject; supports {{placeholders}}"
+
+      body:
+        type: string
+        attributes: ["@required"]
+        description: "Letter body; supports {{placeholders}} (candidate_first_name, position_title, proposed_salary, company_name, start_date)"
+
+      metadata:
+        type: Metadata
+        attributes: ["@audit_metadata"]
+        description: "Audit metadata"
+
+    indexes:
+      - type: unique
+        fields: [company_id, name]

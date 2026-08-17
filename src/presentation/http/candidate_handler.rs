@@ -130,6 +130,13 @@ pub fn create_candidate_read_routes(service: Arc<CandidateService>) -> Router {
 ///
 /// These routes must NOT be publicly exposed. Wrap them with an auth
 /// middleware before nesting into the application router.
+///
+/// # This is unguarded generic CRUD, not a validated write path
+///
+/// These are plain create/update/patch/delete mutations over the entity row —
+/// they bypass all business invariants. If the module exposes a validated write
+/// service (e.g. a command router over its domain engine), serve THAT instead
+/// for any mutation that must respect domain rules.
 pub fn create_candidate_write_routes(service: Arc<CandidateService>) -> Router {
     BackboneCrudHandler::<CandidateService, Candidate, CreateCandidateDto, UpdateCandidateDto, CandidateResponseDto>::write_routes(
         service,

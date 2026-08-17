@@ -7,12 +7,18 @@ pub mod interview_domain_policy;
 pub mod job_application_domain_policy;
 pub mod job_offer_domain_policy;
 pub mod job_requisition_domain_policy;
+pub mod offer_letter_template_domain_policy;
+pub mod recruitment_stage_domain_policy;
+pub mod requisition_skill_domain_policy;
 
 pub use candidate_domain_policy::CandidateDomainPolicy;
 pub use interview_domain_policy::InterviewDomainPolicy;
 pub use job_application_domain_policy::JobApplicationDomainPolicy;
 pub use job_offer_domain_policy::JobOfferDomainPolicy;
 pub use job_requisition_domain_policy::JobRequisitionDomainPolicy;
+pub use offer_letter_template_domain_policy::OfferLetterTemplateDomainPolicy;
+pub use recruitment_stage_domain_policy::RecruitmentStageDomainPolicy;
+pub use requisition_skill_domain_policy::RequisitionSkillDomainPolicy;
 
 // <<< CUSTOM
 // END CUSTOM

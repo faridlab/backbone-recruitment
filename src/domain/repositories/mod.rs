@@ -11,6 +11,9 @@ pub mod interview_repository;
 pub mod job_application_repository;
 pub mod job_offer_repository;
 pub mod job_requisition_repository;
+pub mod offer_letter_template_repository;
+pub mod recruitment_stage_repository;
+pub mod requisition_skill_repository;
 
 // Re-exports
 pub use candidate_repository::{
@@ -42,4 +45,22 @@ pub use job_requisition_repository::{
     JobRequisitionPaginationParams,
     JobRequisitionPaginatedResult,
     JobRequisitionFilter,
+};
+pub use offer_letter_template_repository::{
+    OfferLetterTemplateRepository,
+    OfferLetterTemplatePaginationParams,
+    OfferLetterTemplatePaginatedResult,
+    OfferLetterTemplateFilter,
+};
+pub use recruitment_stage_repository::{
+    RecruitmentStageRepository,
+    RecruitmentStagePaginationParams,
+    RecruitmentStagePaginatedResult,
+    RecruitmentStageFilter,
+};
+pub use requisition_skill_repository::{
+    RequisitionSkillRepository,
+    RequisitionSkillPaginationParams,
+    RequisitionSkillPaginatedResult,
+    RequisitionSkillFilter,
 };

@@ -11,6 +11,9 @@ pub mod interview_specification;
 pub mod job_application_specification;
 pub mod job_offer_specification;
 pub mod job_requisition_specification;
+pub mod offer_letter_template_specification;
+pub mod recruitment_stage_specification;
+pub mod requisition_skill_specification;
 
 // <<< CUSTOM
 // END CUSTOM

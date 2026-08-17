@@ -12,3 +12,8 @@
 - job_application_seed
 - job_offer_seed
 - job_requisition_seed
+
+# Newly added seeds (preserve manual order above):
+- offer_letter_template_seed
+- recruitment_stage_seed
+- requisition_skill_seed

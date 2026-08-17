@@ -5,68 +5,6 @@
 //! These services provide the public API for other modules.
 //! They only expose read operations - writes go through events.
 
-use anyhow::Result;
-use async_trait::async_trait;
-use uuid::Uuid;
-
-use super::types::*;
-
-// ============================================================================
-// QUERY SERVICE TRAIT
-// ============================================================================
-
-/// Public query service for Recruitment module
-///
-/// This trait defines read-only operations that other modules can use.
-/// Implementations should NOT expose internal domain logic.
-#[async_trait]
-pub trait RecruitmentQueryService: Send + Sync {
-    /// Get Candidate by ID
-    async fn get_candidate(&self, id: CandidateId) -> Result<Option<CandidateDto>>;
-
-    /// Get Candidate summary by ID
-    async fn get_candidate_summary(&self, id: CandidateId) -> Result<Option<CandidateSummary>>;
-
-    /// Check if Candidate exists
-    async fn candidate_exists(&self, id: CandidateId) -> Result<bool>;
-
-    /// Get Interview by ID
-    async fn get_interview(&self, id: InterviewId) -> Result<Option<InterviewDto>>;
-
-    /// Get Interview summary by ID
-    async fn get_interview_summary(&self, id: InterviewId) -> Result<Option<InterviewSummary>>;
-
-    /// Check if Interview exists
-    async fn interview_exists(&self, id: InterviewId) -> Result<bool>;
-
-    /// Get JobApplication by ID
-    async fn get_job_application(&self, id: JobApplicationId) -> Result<Option<JobApplicationDto>>;
-
-    /// Get JobApplication summary by ID
-    async fn get_job_application_summary(&self, id: JobApplicationId) -> Result<Option<JobApplicationSummary>>;
-
-    /// Check if JobApplication exists
-    async fn job_application_exists(&self, id: JobApplicationId) -> Result<bool>;
-
-    /// Get JobOffer by ID
-    async fn get_job_offer(&self, id: JobOfferId) -> Result<Option<JobOfferDto>>;
-
-    /// Get JobOffer summary by ID
-    async fn get_job_offer_summary(&self, id: JobOfferId) -> Result<Option<JobOfferSummary>>;
-
-    /// Check if JobOffer exists
-    async fn job_offer_exists(&self, id: JobOfferId) -> Result<bool>;
-
-    /// Get JobRequisition by ID
-    async fn get_job_requisition(&self, id: JobRequisitionId) -> Result<Option<JobRequisitionDto>>;
-
-    /// Get JobRequisition summary by ID
-    async fn get_job_requisition_summary(&self, id: JobRequisitionId) -> Result<Option<JobRequisitionSummary>>;
-
-    /// Check if JobRequisition exists
-    async fn job_requisition_exists(&self, id: JobRequisitionId) -> Result<bool>;
-
-}
 
 // ============================================================================
 // CUSTOM SERVICES

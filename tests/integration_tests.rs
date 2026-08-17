@@ -80,3 +80,45 @@ async fn test_job_requisition_api() {
     }
 }
 
+#[tokio::test]
+async fn test_offer_letter_template_api() {
+    let mut test = OfferLetterTemplateApiTest::new();
+    let results = test.run_all().await;
+
+    let failed: Vec<_> = results.iter().filter(|r| !r.success).collect();
+    if !failed.is_empty() {
+        for f in &failed {
+            eprintln!("FAILED: {} - {}", f.test_name, f.details);
+        }
+        panic!("{} tests failed", failed.len());
+    }
+}
+
+#[tokio::test]
+async fn test_recruitment_stage_api() {
+    let mut test = RecruitmentStageApiTest::new();
+    let results = test.run_all().await;
+
+    let failed: Vec<_> = results.iter().filter(|r| !r.success).collect();
+    if !failed.is_empty() {
+        for f in &failed {
+            eprintln!("FAILED: {} - {}", f.test_name, f.details);
+        }
+        panic!("{} tests failed", failed.len());
+    }
+}
+
+#[tokio::test]
+async fn test_requisition_skill_api() {
+    let mut test = RequisitionSkillApiTest::new();
+    let results = test.run_all().await;
+
+    let failed: Vec<_> = results.iter().filter(|r| !r.success).collect();
+    if !failed.is_empty() {
+        for f in &failed {
+            eprintln!("FAILED: {} - {}", f.test_name, f.details);
+        }
+        panic!("{} tests failed", failed.len());
+    }
+}
+

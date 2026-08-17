@@ -146,6 +146,87 @@ pub struct JobRequisitionDeletedEvent {
 }
 
 // ============================================================================
+// OFFERLETTERTEMPLATE EVENTS
+// ============================================================================
+
+/// Event published when a OfferLetterTemplate is created
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OfferLetterTemplateCreatedEvent {
+    pub id: OfferLetterTemplateId,
+    pub data: OfferLetterTemplateDto,
+    pub occurred_at: DateTime<Utc>,
+}
+
+/// Event published when a OfferLetterTemplate is updated
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OfferLetterTemplateUpdatedEvent {
+    pub id: OfferLetterTemplateId,
+    pub data: OfferLetterTemplateDto,
+    pub occurred_at: DateTime<Utc>,
+}
+
+/// Event published when a OfferLetterTemplate is deleted
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OfferLetterTemplateDeletedEvent {
+    pub id: OfferLetterTemplateId,
+    pub occurred_at: DateTime<Utc>,
+}
+
+// ============================================================================
+// RECRUITMENTSTAGE EVENTS
+// ============================================================================
+
+/// Event published when a RecruitmentStage is created
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecruitmentStageCreatedEvent {
+    pub id: RecruitmentStageId,
+    pub data: RecruitmentStageDto,
+    pub occurred_at: DateTime<Utc>,
+}
+
+/// Event published when a RecruitmentStage is updated
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecruitmentStageUpdatedEvent {
+    pub id: RecruitmentStageId,
+    pub data: RecruitmentStageDto,
+    pub occurred_at: DateTime<Utc>,
+}
+
+/// Event published when a RecruitmentStage is deleted
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecruitmentStageDeletedEvent {
+    pub id: RecruitmentStageId,
+    pub occurred_at: DateTime<Utc>,
+}
+
+// ============================================================================
+// REQUISITIONSKILL EVENTS
+// ============================================================================
+
+/// Event published when a RequisitionSkill is created
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequisitionSkillCreatedEvent {
+    pub id: RequisitionSkillId,
+    pub data: RequisitionSkillDto,
+    pub occurred_at: DateTime<Utc>,
+}
+
+/// Event published when a RequisitionSkill is updated
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequisitionSkillUpdatedEvent {
+    pub id: RequisitionSkillId,
+    pub data: RequisitionSkillDto,
+    pub occurred_at: DateTime<Utc>,
+}
+
+/// Event published when a RequisitionSkill is deleted
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequisitionSkillDeletedEvent {
+    pub id: RequisitionSkillId,
+    pub occurred_at: DateTime<Utc>,
+}
+
+// ============================================================================
 // MODULE EVENT ENUM
 // ============================================================================
 
@@ -168,6 +249,15 @@ pub enum RecruitmentEvent {
     JobRequisitionCreated(JobRequisitionCreatedEvent),
     JobRequisitionUpdated(JobRequisitionUpdatedEvent),
     JobRequisitionDeleted(JobRequisitionDeletedEvent),
+    OfferLetterTemplateCreated(OfferLetterTemplateCreatedEvent),
+    OfferLetterTemplateUpdated(OfferLetterTemplateUpdatedEvent),
+    OfferLetterTemplateDeleted(OfferLetterTemplateDeletedEvent),
+    RecruitmentStageCreated(RecruitmentStageCreatedEvent),
+    RecruitmentStageUpdated(RecruitmentStageUpdatedEvent),
+    RecruitmentStageDeleted(RecruitmentStageDeletedEvent),
+    RequisitionSkillCreated(RequisitionSkillCreatedEvent),
+    RequisitionSkillUpdated(RequisitionSkillUpdatedEvent),
+    RequisitionSkillDeleted(RequisitionSkillDeletedEvent),
 }
 
 /// Metadata for module events

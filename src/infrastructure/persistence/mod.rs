@@ -9,6 +9,9 @@ mod interview_repository;
 mod job_application_repository;
 mod job_offer_repository;
 mod job_requisition_repository;
+mod offer_letter_template_repository;
+mod recruitment_stage_repository;
+mod requisition_skill_repository;
 
 // Custom persistence modules
 // <<< CUSTOM
@@ -20,6 +23,9 @@ pub use interview_repository::InterviewRepository;
 pub use job_application_repository::JobApplicationRepository;
 pub use job_offer_repository::JobOfferRepository;
 pub use job_requisition_repository::JobRequisitionRepository;
+pub use offer_letter_template_repository::OfferLetterTemplateRepository;
+pub use recruitment_stage_repository::RecruitmentStageRepository;
+pub use requisition_skill_repository::RequisitionSkillRepository;
 
 // Re-export backbone-orm types
 pub use backbone_orm::repository::{

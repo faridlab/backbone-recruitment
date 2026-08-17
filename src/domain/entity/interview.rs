@@ -67,7 +67,7 @@ pub struct Interview {
 impl Interview {
     /// Create a builder for Interview
     pub fn builder() -> InterviewBuilder {
-        InterviewBuilder::default()
+        <InterviewBuilder as Default>::default()
     }
 
     /// Create a new Interview with required fields
@@ -365,7 +365,7 @@ impl InterviewBuilder {
             interview_format: self.interview_format,
             rating: self.rating,
             feedback: self.feedback,
-            status: self.status.unwrap_or(InterviewStatus::default()),
+            status: self.status.unwrap_or_default(),
             metadata: AuditMetadata::default(),
         })
     }

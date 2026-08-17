@@ -17,6 +17,7 @@ pub fn job_requisition_validator() -> JobRequisitionValidator {
     EntityValidator::new()
         .rule(RequiredString::new("title", |e: &JobRequisition| &e.title))
         .rule(NonNegative::new("headcount", |e: &JobRequisition| e.headcount as i64))
+        .rule(NonNegative::new("filled_headcount", |e: &JobRequisition| e.filled_headcount as i64))
         .rule(OptionalNotBlank::new("employment_type", |e: &JobRequisition| e.employment_type.as_deref()))
     // <<< CUSTOM RULES
     // END CUSTOM RULES

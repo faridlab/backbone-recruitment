@@ -56,6 +56,7 @@ pub struct JobRequisition {
     pub position_id: Option<Uuid>,
     pub title: String,
     pub headcount: i32,
+    pub filled_headcount: i32,
     pub employment_type: Option<String>,
     pub status: RequisitionStatus,
     pub opened_by: Uuid,
@@ -69,11 +70,11 @@ pub struct JobRequisition {
 impl JobRequisition {
     /// Create a builder for JobRequisition
     pub fn builder() -> JobRequisitionBuilder {
-        JobRequisitionBuilder::default()
+        <JobRequisitionBuilder as Default>::default()
     }
 
     /// Create a new JobRequisition with required fields
-    pub fn new(company_id: Uuid, title: String, headcount: i32, status: RequisitionStatus, opened_by: Uuid) -> Self {
+    pub fn new(company_id: Uuid, title: String, headcount: i32, filled_headcount: i32, status: RequisitionStatus, opened_by: Uuid) -> Self {
         Self {
             id: Uuid::new_v4(),
             company_id,
@@ -81,6 +82,7 @@ impl JobRequisition {
             position_id: None,
             title,
             headcount,
+            filled_headcount,
             employment_type: None,
             status,
             opened_by,
@@ -203,6 +205,9 @@ impl JobRequisition {
                 "headcount" => {
                     if let Ok(v) = serde_json::from_value(value) { self.headcount = v; }
                 }
+                "filled_headcount" => {
+                    if let Ok(v) = serde_json::from_value(value) { self.filled_headcount = v; }
+                }
                 "employment_type" => {
                     if let Ok(v) = serde_json::from_value(value) { self.employment_type = v; }
                 }
@@ -297,6 +302,7 @@ pub struct JobRequisitionBuilder {
     position_id: Option<Uuid>,
     title: Option<String>,
     headcount: Option<i32>,
+    filled_headcount: Option<i32>,
     employment_type: Option<String>,
     status: Option<RequisitionStatus>,
     opened_by: Option<Uuid>,
@@ -332,6 +338,12 @@ impl JobRequisitionBuilder {
     /// Set the headcount field (required)
     pub fn headcount(mut self, value: i32) -> Self {
         self.headcount = Some(value);
+        self
+    }
+
+    /// Set the filled_headcount field (default: `0`)
+    pub fn filled_headcount(mut self, value: i32) -> Self {
+        self.filled_headcount = Some(value);
         self
     }
 
@@ -381,8 +393,9 @@ impl JobRequisitionBuilder {
             position_id: self.position_id,
             title,
             headcount,
+            filled_headcount: self.filled_headcount.unwrap_or(0),
             employment_type: self.employment_type,
-            status: self.status.unwrap_or(RequisitionStatus::default()),
+            status: self.status.unwrap_or_default(),
             opened_by,
             budget: self.budget,
             deadline: self.deadline,

@@ -1,0 +1,70 @@
+# =============================================================================
+# Domain: recruitment
+# Entity: RequisitionSkill
+# Description: A skill requirement attached to a requisition. Skill master data
+#              is owned by the learning domain (its skill catalog + proficiency
+#              scale); this junction only REFERENCES it by id — recruitment
+#              must not grow a second skill table that would drift out of sync
+#              with the one employees are assessed against. The cross-module
+#              reference is a logical FK (no constraint across schemas); the
+#              write path validates skill ids in-company and fails closed on
+#              unknown ones.
+# =============================================================================
+
+models:
+  - name: RequisitionSkill
+    collection: requisition_skills
+    description: "A skill requirement on a requisition, referencing the learning domain's skill catalog."
+
+    fields:
+      id:
+        type: uuid
+        attributes: ["@id", "@default(uuid)"]
+        description: "Unique requirement id"
+
+      company_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Owning company # logical FK organization.Company.id"
+
+      requisition_id:
+        type: uuid
+        attributes: ["@required", "@foreign_key(JobRequisition.id)"]
+        description: "Requiring requisition # FK job_requisitions.id (in-module)"
+
+      skill_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Required skill # logical FK learning.skills.id (cross-module, no hard FK)"
+
+      required_proficiency:
+        type: ProficiencyLevel
+        attributes: ["@required"]
+        description: "Minimum proficiency expected of applicants (same scale as employee skills)"
+
+      metadata:
+        type: Metadata
+        attributes: ["@audit_metadata"]
+        description: "Audit metadata"
+
+    indexes:
+      - type: unique
+        fields: [company_id, requisition_id, skill_id]
+      - type: index
+        fields: [skill_id]
+
+enums:
+  - name: ProficiencyLevel
+    description: "Skill proficiency scale — mirrors the learning domain's scale so a requirement and an employee skill speak the same language"
+    variants:
+      - name: novice
+        description: "Novice"
+      - name: beginner
+        description: "Beginner"
+      - name: intermediate
+        description: "Intermediate"
+        default: true
+      - name: advanced
+        description: "Advanced"
+      - name: expert
+        description: "Expert"

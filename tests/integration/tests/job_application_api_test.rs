@@ -27,7 +27,12 @@ impl TestDataGenerator for JobApplicationTestData {
             "company_id": Uuid::new_v4().to_string(),
             "candidate_id": Uuid::new_v4().to_string(),
             "requisition_id": Uuid::new_v4().to_string(),
-            "status": "applied",
+            "stage_id": Uuid::new_v4().to_string(),
+            "last_stage_id": null,
+            "stage_updated_at": now,
+            "date_closed": null,
+            "refuse_reason": null,
+            "refused_at": now,
             "applied_at": now,
             "metadata": json!({}),
         })
@@ -40,7 +45,12 @@ impl TestDataGenerator for JobApplicationTestData {
             "company_id": Uuid::new_v4().to_string(),
             "candidate_id": Uuid::new_v4().to_string(),
             "requisition_id": Uuid::new_v4().to_string(),
-            "status": "applied",
+            "stage_id": Uuid::new_v4().to_string(),
+            "last_stage_id": null,
+            "stage_updated_at": now,
+            "date_closed": null,
+            "refuse_reason": null,
+            "refused_at": now,
             "applied_at": now,
             "metadata": json!({}),
         })
@@ -59,6 +69,9 @@ impl TestDataGenerator for JobApplicationTestData {
         }
         if let Some(id) = super::crud_test_base::create_and_get_id(api, "/api/v1/job_requisitions", &super::job_requisition_api_test::JobRequisitionTestData).await {
             deps.push(("requisition_id".to_string(), id));
+        }
+        if let Some(id) = super::crud_test_base::create_and_get_id(api, "/api/v1/recruitment_stages", &super::recruitment_stage_api_test::RecruitmentStageTestData).await {
+            deps.push(("stage_id".to_string(), id));
         }
         deps
     }

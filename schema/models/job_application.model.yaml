@@ -2,14 +2,25 @@
 # Domain: recruitment
 # Entity: JobApplication
 # Description: A candidate's application against a requisition — the central
-#              funnel object (applied -> screening -> interview -> offer ->
-#              hired/rejected). In-module FKs to Candidate + JobRequisition.
+#              funnel object. The lifecycle is STAGE-DRIVEN: stage_id points at
+#              a configurable RecruitmentStage (lifecycle: stage_ref) and there
+#              is deliberately NO stored status enum — the pipeline is company
+#              config, so any hardcoded state list would fight it. Where an
+#              application "is" derives from the stage flags plus the refusal
+#              marks: hired = its stage is_hired, refused = refused_at set,
+#              ongoing = anything else. Transition rules (which moves are
+#              legal, and the vacancy coupling into the requisition) live in
+#              the application write service, the one door for stage changes.
 # =============================================================================
 
 models:
   - name: JobApplication
     collection: job_applications
-    description: "A candidate's application to a requisition (central funnel object)."
+    description: "A candidate's application to a requisition (central funnel object; stage-driven lifecycle)."
+
+    relations:
+      stage:
+        type: RecruitmentStage
 
     fields:
       id:
@@ -32,10 +43,33 @@ models:
         attributes: ["@required", "@foreign_key(JobRequisition.id)"]
         description: "Requisition applied to # FK job_requisitions.id (in-module)"
 
-      status:
-        type: ApplicationStatus
-        attributes: ["@required", "@default(applied)"]
-        description: "Funnel stage"
+      stage_id:
+        type: uuid
+        attributes: ["@required", "@foreign_key(RecruitmentStage.id)"]
+        lifecycle: stage_ref
+        description: "Current pipeline stage # FK recruitment_stages.id (in-module, stage_ref lifecycle)"
+
+      last_stage_id:
+        type: uuid?
+        attributes: ["@exclude_from_foreign_key_check"]
+        description: "Previous stage # FK recruitment_stages.id — kept for funnel-fall-off analysis"
+
+      stage_updated_at:
+        type: datetime?
+        description: "When the application last changed stage — feeds staleness/rotting views"
+
+      date_closed:
+        type: datetime?
+        description: "When the application closed (hired or refused); null while ongoing"
+
+      refuse_reason:
+        type: string?
+        attributes: ["@length(max=500)"]
+        description: "Why the application was refused (sticky — set once)"
+
+      refused_at:
+        type: datetime?
+        description: "When it was refused; non-null IS the refused mark"
 
       applied_at:
         type: datetime
@@ -49,26 +83,8 @@ models:
 
     indexes:
       - type: index
-        fields: [company_id, status]
+        fields: [company_id, stage_id]
       - type: index
         fields: [candidate_id]
       - type: index
         fields: [requisition_id]
-
-enums:
-  - name: ApplicationStatus
-    description: "Application funnel stage"
-    variants:
-      - name: applied
-        default: true
-        description: "Just applied"
-      - name: screening
-        description: "Under screening"
-      - name: interview
-        description: "In interview loop"
-      - name: offer
-        description: "Offer stage"
-      - name: hired
-        description: "Hired"
-      - name: rejected
-        description: "Rejected"

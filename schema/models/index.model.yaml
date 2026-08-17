@@ -1,7 +1,7 @@
 # =============================================================================
 # recruitment Module - Schema Index
 # =============================================================================
-# Version: 2.0
+# Version: 3.0
 # Description: Module schema index. `module:` and `schema:` are stamped from the
 # module name by `metaphor module create`. `schema:` gives this module its OWN
 # Postgres schema (migrations emit `CREATE SCHEMA recruitment` and qualify tables
@@ -10,11 +10,13 @@
 # =============================================================================
 
 module: recruitment
-version: 2
+version: 3
 schema: recruitment
 
-# ADR-0014 company fence (Wave 1 P0 sweep, 2026-08-16): talent acquisition is company-private as modeled — candidates, applications,
-# offers, requisitions, interviews (pillar-hrms H-5).
+# Company fence: talent acquisition records (candidates, applications, offers,
+# requisitions, interviews, stages, skill requirements, letter templates) are
+# company-private — every table carries company_id and row access is enforced
+# by the strict fence policies (ADR-0014 vocabulary).
 company_fence: strict
 description: "recruitment / applicant tracking (requisition -> candidate -> offer -> hire)"
 
@@ -65,10 +67,13 @@ shared_types:
 
   Metadata: [Timestamps, Actors]
 
-# Import each entity model. The 5 real entities (Example skeleton removed).
+# Import each entity model. The 8 real entities.
 imports:
   - job_requisition.model.yaml
+  - requisition_skill.model.yaml
+  - recruitment_stage.model.yaml
   - candidate.model.yaml
   - job_application.model.yaml
   - interview.model.yaml
   - job_offer.model.yaml
+  - offer_letter_template.model.yaml

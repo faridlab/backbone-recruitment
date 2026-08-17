@@ -1,0 +1,65 @@
+# =============================================================================
+# Domain: recruitment
+# Entity: RecruitmentStage
+# Description: A configurable pipeline stage that applications move through.
+#              The pipeline itself is company config (name + order); the flags
+#              carry the semantics other code keys on — entering an is_hired
+#              stage fills a requisition vacancy, folded marks background
+#              stages excluded from active-funnel counts. The application
+#              lifecycle is the stage reference (job_applications.stage_id,
+#              lifecycle: stage_ref), never a stored status enum: the pipeline
+#              is whatever rows the company configured, so hardcoding the
+#              states would fight the config.
+# =============================================================================
+
+models:
+  - name: RecruitmentStage
+    collection: recruitment_stages
+    description: "A company-configurable pipeline stage (order + semantic flags)."
+
+    fields:
+      id:
+        type: uuid
+        attributes: ["@id", "@default(uuid)"]
+        description: "Unique stage id"
+
+      company_id:
+        type: uuid
+        attributes: ["@required", "@exclude_from_foreign_key_check"]
+        description: "Owning company # logical FK organization.Company.id"
+
+      name:
+        type: string
+        attributes: ["@required", "@length(max=120)"]
+        description: "Stage name shown to recruiters"
+
+      sequence:
+        type: int
+        attributes: ["@required", "@non_negative", "@default(10)"]
+        description: "Sort order; a new application enters the lowest-sequence stage first"
+
+      is_hired:
+        type: boolean
+        attributes: ["@required", "@default(false)"]
+        description: "Entering this stage fills one requisition vacancy and closes the application"
+
+      folded:
+        type: boolean
+        attributes: ["@required", "@default(false)"]
+        description: "Background stage; excluded from active-funnel counts"
+
+      description:
+        type: string?
+        attributes: ["@length(max=500)"]
+        description: "Optional usage notes"
+
+      metadata:
+        type: Metadata
+        attributes: ["@audit_metadata"]
+        description: "Audit metadata"
+
+    indexes:
+      - type: unique
+        fields: [company_id, name]
+      - type: index
+        fields: [company_id, sequence]

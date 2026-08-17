@@ -18,7 +18,6 @@ use validator::Validate;
 
 use crate::domain::entity::JobApplication;
 use crate::domain::entity::AuditMetadata;
-use crate::domain::entity::ApplicationStatus;
 
 // =============================================================================
 // Create DTO
@@ -42,7 +41,19 @@ pub struct CreateJobApplicationDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "requisition_id")]
     pub requisition_id: Uuid,
-    pub status: ApplicationStatus,
+    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
+    #[serde(alias = "stage_id")]
+    pub stage_id: Uuid,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "last_stage_id")]
+    pub last_stage_id: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "stage_updated_at")]
+    pub stage_updated_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "date_closed")]
+    pub date_closed: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "refuse_reason")]
+    pub refuse_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "refused_at")]
+    pub refused_at: Option<DateTime<Utc>>,
     #[cfg_attr(feature = "openapi", schema(example = "2024-01-01T00:00:00Z"))]
     #[serde(alias = "applied_at")]
     pub applied_at: DateTime<Utc>,
@@ -70,7 +81,19 @@ pub struct UpdateJobApplicationDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "requisition_id")]
     pub requisition_id: Uuid,
-    pub status: ApplicationStatus,
+    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
+    #[serde(alias = "stage_id")]
+    pub stage_id: Uuid,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "last_stage_id")]
+    pub last_stage_id: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "stage_updated_at")]
+    pub stage_updated_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "date_closed")]
+    pub date_closed: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "refuse_reason")]
+    pub refuse_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "refused_at")]
+    pub refused_at: Option<DateTime<Utc>>,
     #[cfg_attr(feature = "openapi", schema(example = "2024-01-01T00:00:00Z"))]
     #[serde(alias = "applied_at")]
     pub applied_at: DateTime<Utc>,
@@ -98,8 +121,19 @@ pub struct PatchJobApplicationDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "requisition_id")]
     pub requisition_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub status: Option<ApplicationStatus>,
+    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
+    #[serde(skip_serializing_if = "Option::is_none", alias = "stage_id")]
+    pub stage_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none", alias = "last_stage_id")]
+    pub last_stage_id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none", alias = "stage_updated_at")]
+    pub stage_updated_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none", alias = "date_closed")]
+    pub date_closed: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none", alias = "refuse_reason")]
+    pub refuse_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", alias = "refused_at")]
+    pub refused_at: Option<DateTime<Utc>>,
     #[cfg_attr(feature = "openapi", schema(example = "2024-01-01T00:00:00Z"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "applied_at")]
     pub applied_at: Option<DateTime<Utc>>,
@@ -108,7 +142,7 @@ pub struct PatchJobApplicationDto {
 impl PatchJobApplicationDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.candidate_id.is_some() || self.requisition_id.is_some() || self.status.is_some() || self.applied_at.is_some()
+        self.company_id.is_some() || self.candidate_id.is_some() || self.requisition_id.is_some() || self.stage_id.is_some() || self.last_stage_id.is_some() || self.stage_updated_at.is_some() || self.date_closed.is_some() || self.refuse_reason.is_some() || self.refused_at.is_some() || self.applied_at.is_some()
     }
 }
 
@@ -132,7 +166,13 @@ pub struct JobApplicationResponseDto {
     pub candidate_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub requisition_id: Uuid,
-    pub status: ApplicationStatus,
+    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
+    pub stage_id: Uuid,
+    pub last_stage_id: Option<Uuid>,
+    pub stage_updated_at: Option<DateTime<Utc>>,
+    pub date_closed: Option<DateTime<Utc>>,
+    pub refuse_reason: Option<String>,
+    pub refused_at: Option<DateTime<Utc>>,
     #[cfg_attr(feature = "openapi", schema(example = "2024-01-01T00:00:00Z"))]
     pub applied_at: DateTime<Utc>,
     pub metadata: AuditMetadata,
@@ -209,7 +249,12 @@ impl From<JobApplication> for JobApplicationResponseDto {
             company_id: entity.company_id,
             candidate_id: entity.candidate_id,
             requisition_id: entity.requisition_id,
-            status: entity.status,
+            stage_id: entity.stage_id,
+            last_stage_id: entity.last_stage_id,
+            stage_updated_at: entity.stage_updated_at,
+            date_closed: entity.date_closed,
+            refuse_reason: entity.refuse_reason,
+            refused_at: entity.refused_at,
             applied_at: entity.applied_at,
             metadata: entity.metadata,
         }
@@ -236,7 +281,12 @@ impl From<CreateJobApplicationDto> for JobApplication {
             company_id: dto.company_id,
             candidate_id: dto.candidate_id,
             requisition_id: dto.requisition_id,
-            status: dto.status,
+            stage_id: dto.stage_id,
+            last_stage_id: dto.last_stage_id,
+            stage_updated_at: dto.stage_updated_at,
+            date_closed: dto.date_closed,
+            refuse_reason: dto.refuse_reason,
+            refused_at: dto.refused_at,
             applied_at: dto.applied_at,
             metadata: AuditMetadata::default(),
         }
@@ -250,7 +300,12 @@ impl From<&JobApplication> for JobApplicationResponseDto {
             company_id: entity.company_id.clone(),
             candidate_id: entity.candidate_id.clone(),
             requisition_id: entity.requisition_id.clone(),
-            status: entity.status.clone(),
+            stage_id: entity.stage_id.clone(),
+            last_stage_id: entity.last_stage_id.clone(),
+            stage_updated_at: entity.stage_updated_at.clone(),
+            date_closed: entity.date_closed.clone(),
+            refuse_reason: entity.refuse_reason.clone(),
+            refused_at: entity.refused_at.clone(),
             applied_at: entity.applied_at.clone(),
             metadata: entity.metadata.clone(),
         }
@@ -268,7 +323,12 @@ impl backbone_core::ApplyUpdateDto<UpdateJobApplicationDto> for JobApplication {
         self.company_id = dto.company_id;
         self.candidate_id = dto.candidate_id;
         self.requisition_id = dto.requisition_id;
-        self.status = dto.status;
+        self.stage_id = dto.stage_id;
+        self.last_stage_id = dto.last_stage_id;
+        self.stage_updated_at = dto.stage_updated_at;
+        self.date_closed = dto.date_closed;
+        self.refuse_reason = dto.refuse_reason;
+        self.refused_at = dto.refused_at;
         self.applied_at = dto.applied_at;
         Ok(self)
     }

@@ -36,10 +36,16 @@ models:
         attributes: ["@length(max=60)"]
         description: "Employment type (full-time / part-time / contract / ...)"
 
+      letter_template_id:
+        type: uuid?
+        attributes: ["@foreign_key(OfferLetterTemplate.id)"]
+        description: "Letter template rendered and sent when the offer is extended # FK offer_letter_templates.id (in-module); omit = no letter"
+
       status:
         type: OfferStatus
         attributes: ["@required", "@default(draft)"]
-        description: "Offer status"
+        lifecycle: hand_set
+        description: "Offer status (hand-set by the extend/hire/decline/withdraw verbs)"
 
       offered_at:
         type: datetime?

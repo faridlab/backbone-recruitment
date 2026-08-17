@@ -21,6 +21,12 @@ tags:
     description: JobOffer management endpoints
   - name: JobRequisitions
     description: JobRequisition management endpoints
+  - name: OfferLetterTemplates
+    description: OfferLetterTemplate management endpoints
+  - name: RecruitmentStages
+    description: RecruitmentStage management endpoints
+  - name: RequisitionSkills
+    description: RequisitionSkill management endpoints
 
 paths:
   /api/v1/candidates:
@@ -1853,6 +1859,1104 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  /api/v1/offer_letter_templates:
+    get:
+      tags:
+        - OfferLetterTemplates
+      summary: List OfferLetterTemplates
+      description: Get a paginated list of OfferLetterTemplates with optional filtering and sorting
+      operationId: listOfferLetterTemplates
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplateList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - OfferLetterTemplates
+      summary: Create OfferLetterTemplate
+      description: Create a new OfferLetterTemplate
+      operationId: createOfferLetterTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOfferLetterTemplateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplate'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/offer_letter_templates/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags:
+        - OfferLetterTemplates
+      summary: Get OfferLetterTemplate by ID
+      operationId: getOfferLetterTemplate
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplate'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - OfferLetterTemplates
+      summary: Update OfferLetterTemplate (full)
+      operationId: updateOfferLetterTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOfferLetterTemplateRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplate'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - OfferLetterTemplates
+      summary: Update OfferLetterTemplate (partial)
+      operationId: patchOfferLetterTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchOfferLetterTemplateRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplate'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - OfferLetterTemplates
+      summary: Delete OfferLetterTemplate (soft)
+      operationId: deleteOfferLetterTemplate
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/offer_letter_templates/bulk:
+    post:
+      tags:
+        - OfferLetterTemplates
+      summary: Bulk create OfferLetterTemplates
+      operationId: bulkCreateOfferLetterTemplates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CreateOfferLetterTemplateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OfferLetterTemplate'
+    put:
+      tags:
+        - OfferLetterTemplates
+      summary: Bulk update OfferLetterTemplates (full, atomic)
+      operationId: bulkUpdateOfferLetterTemplates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                allOf:
+                  - type: object
+                    required: [id]
+                    properties:
+                      id:
+                        type: string
+                  - $ref: '#/components/schemas/UpdateOfferLetterTemplateRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplateBulkResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    patch:
+      tags:
+        - OfferLetterTemplates
+      summary: Bulk partial-update OfferLetterTemplates (atomic)
+      operationId: bulkPatchOfferLetterTemplates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [ids, patch]
+                  properties:
+                    ids:
+                      type: array
+                      items: { type: string }
+                    patch:
+                      type: object
+                      additionalProperties: true
+                - type: object
+                  required: [items]
+                  properties:
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        required: [id, patch]
+                        properties:
+                          id: { type: string }
+                          patch: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplateBulkResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/offer_letter_templates/upsert:
+    post:
+      tags:
+        - OfferLetterTemplates
+      summary: Upsert OfferLetterTemplate
+      operationId: upsertOfferLetterTemplate
+      parameters:
+        - name: key_field
+          in: query
+          schema:
+            type: string
+        - name: key_value
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOfferLetterTemplateRequest'
+      responses:
+        '200':
+          description: Upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplate'
+
+  /api/v1/offer_letter_templates/trash:
+    get:
+      tags:
+        - OfferLetterTemplates
+      summary: List deleted OfferLetterTemplates
+      operationId: listDeletedOfferLetterTemplates
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplateList'
+
+  /api/v1/offer_letter_templates/{id}/restore:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+    post:
+      tags:
+        - OfferLetterTemplates
+      summary: Restore deleted OfferLetterTemplate
+      operationId: restoreOfferLetterTemplate
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplate'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/offer_letter_templates/empty:
+    delete:
+      tags:
+        - OfferLetterTemplates
+      summary: Empty trash for OfferLetterTemplates
+      operationId: emptyTrashOfferLetterTemplates
+      responses:
+        '200':
+          description: Trash emptied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted_count:
+                    type: integer
+
+  /api/v1/offer_letter_templates/delete/bulk:
+    post:
+      tags:
+        - OfferLetterTemplates
+      summary: Bulk soft-delete OfferLetterTemplates by ids (atomic)
+      operationId: bulkDeleteOfferLetterTemplates
+      requestBody:
+        $ref: '#/components/requestBodies/BatchIds'
+      responses:
+        '200':
+          description: Soft-deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  soft_deleted: { type: integer }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/offer_letter_templates/restore/bulk:
+    post:
+      tags:
+        - OfferLetterTemplates
+      summary: Bulk restore OfferLetterTemplates by ids (atomic)
+      operationId: bulkRestoreOfferLetterTemplates
+      requestBody:
+        $ref: '#/components/requestBodies/BatchIds'
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferLetterTemplateBulkResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/offer_letter_templates/restore/all:
+    post:
+      tags:
+        - OfferLetterTemplates
+      summary: Restore all soft-deleted OfferLetterTemplates
+      operationId: restoreAllOfferLetterTemplates
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  restored: { type: integer }
+
+  /api/v1/offer_letter_templates/trash/bulk:
+    delete:
+      tags:
+        - OfferLetterTemplates
+      summary: Bulk permanently-delete OfferLetterTemplates from trash by ids (atomic)
+      operationId: bulkPermanentDeleteOfferLetterTemplates
+      requestBody:
+        $ref: '#/components/requestBodies/BatchIds'
+      responses:
+        '200':
+          description: Permanently deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permanently_deleted: { type: integer }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/recruitment_stages:
+    get:
+      tags:
+        - RecruitmentStages
+      summary: List RecruitmentStages
+      description: Get a paginated list of RecruitmentStages with optional filtering and sorting
+      operationId: listRecruitmentStages
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStageList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - RecruitmentStages
+      summary: Create RecruitmentStage
+      description: Create a new RecruitmentStage
+      operationId: createRecruitmentStage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecruitmentStageRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/recruitment_stages/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags:
+        - RecruitmentStages
+      summary: Get RecruitmentStage by ID
+      operationId: getRecruitmentStage
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - RecruitmentStages
+      summary: Update RecruitmentStage (full)
+      operationId: updateRecruitmentStage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRecruitmentStageRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - RecruitmentStages
+      summary: Update RecruitmentStage (partial)
+      operationId: patchRecruitmentStage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchRecruitmentStageRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - RecruitmentStages
+      summary: Delete RecruitmentStage (soft)
+      operationId: deleteRecruitmentStage
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/recruitment_stages/bulk:
+    post:
+      tags:
+        - RecruitmentStages
+      summary: Bulk create RecruitmentStages
+      operationId: bulkCreateRecruitmentStages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CreateRecruitmentStageRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecruitmentStage'
+    put:
+      tags:
+        - RecruitmentStages
+      summary: Bulk update RecruitmentStages (full, atomic)
+      operationId: bulkUpdateRecruitmentStages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                allOf:
+                  - type: object
+                    required: [id]
+                    properties:
+                      id:
+                        type: string
+                  - $ref: '#/components/schemas/UpdateRecruitmentStageRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStageBulkResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    patch:
+      tags:
+        - RecruitmentStages
+      summary: Bulk partial-update RecruitmentStages (atomic)
+      operationId: bulkPatchRecruitmentStages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [ids, patch]
+                  properties:
+                    ids:
+                      type: array
+                      items: { type: string }
+                    patch:
+                      type: object
+                      additionalProperties: true
+                - type: object
+                  required: [items]
+                  properties:
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        required: [id, patch]
+                        properties:
+                          id: { type: string }
+                          patch: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStageBulkResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/recruitment_stages/upsert:
+    post:
+      tags:
+        - RecruitmentStages
+      summary: Upsert RecruitmentStage
+      operationId: upsertRecruitmentStage
+      parameters:
+        - name: key_field
+          in: query
+          schema:
+            type: string
+        - name: key_value
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRecruitmentStageRequest'
+      responses:
+        '200':
+          description: Upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStage'
+
+  /api/v1/recruitment_stages/trash:
+    get:
+      tags:
+        - RecruitmentStages
+      summary: List deleted RecruitmentStages
+      operationId: listDeletedRecruitmentStages
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStageList'
+
+  /api/v1/recruitment_stages/{id}/restore:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+    post:
+      tags:
+        - RecruitmentStages
+      summary: Restore deleted RecruitmentStage
+      operationId: restoreRecruitmentStage
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStage'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/recruitment_stages/empty:
+    delete:
+      tags:
+        - RecruitmentStages
+      summary: Empty trash for RecruitmentStages
+      operationId: emptyTrashRecruitmentStages
+      responses:
+        '200':
+          description: Trash emptied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted_count:
+                    type: integer
+
+  /api/v1/recruitment_stages/delete/bulk:
+    post:
+      tags:
+        - RecruitmentStages
+      summary: Bulk soft-delete RecruitmentStages by ids (atomic)
+      operationId: bulkDeleteRecruitmentStages
+      requestBody:
+        $ref: '#/components/requestBodies/BatchIds'
+      responses:
+        '200':
+          description: Soft-deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  soft_deleted: { type: integer }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/recruitment_stages/restore/bulk:
+    post:
+      tags:
+        - RecruitmentStages
+      summary: Bulk restore RecruitmentStages by ids (atomic)
+      operationId: bulkRestoreRecruitmentStages
+      requestBody:
+        $ref: '#/components/requestBodies/BatchIds'
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecruitmentStageBulkResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/recruitment_stages/restore/all:
+    post:
+      tags:
+        - RecruitmentStages
+      summary: Restore all soft-deleted RecruitmentStages
+      operationId: restoreAllRecruitmentStages
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  restored: { type: integer }
+
+  /api/v1/recruitment_stages/trash/bulk:
+    delete:
+      tags:
+        - RecruitmentStages
+      summary: Bulk permanently-delete RecruitmentStages from trash by ids (atomic)
+      operationId: bulkPermanentDeleteRecruitmentStages
+      requestBody:
+        $ref: '#/components/requestBodies/BatchIds'
+      responses:
+        '200':
+          description: Permanently deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permanently_deleted: { type: integer }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/requisition_skills:
+    get:
+      tags:
+        - RequisitionSkills
+      summary: List RequisitionSkills
+      description: Get a paginated list of RequisitionSkills with optional filtering and sorting
+      operationId: listRequisitionSkills
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkillList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - RequisitionSkills
+      summary: Create RequisitionSkill
+      description: Create a new RequisitionSkill
+      operationId: createRequisitionSkill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRequisitionSkillRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkill'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/requisition_skills/{id}:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+
+    get:
+      tags:
+        - RequisitionSkills
+      summary: Get RequisitionSkill by ID
+      operationId: getRequisitionSkill
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkill'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - RequisitionSkills
+      summary: Update RequisitionSkill (full)
+      operationId: updateRequisitionSkill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequisitionSkillRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkill'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags:
+        - RequisitionSkills
+      summary: Update RequisitionSkill (partial)
+      operationId: patchRequisitionSkill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchRequisitionSkillRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkill'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - RequisitionSkills
+      summary: Delete RequisitionSkill (soft)
+      operationId: deleteRequisitionSkill
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/requisition_skills/bulk:
+    post:
+      tags:
+        - RequisitionSkills
+      summary: Bulk create RequisitionSkills
+      operationId: bulkCreateRequisitionSkills
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/CreateRequisitionSkillRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RequisitionSkill'
+    put:
+      tags:
+        - RequisitionSkills
+      summary: Bulk update RequisitionSkills (full, atomic)
+      operationId: bulkUpdateRequisitionSkills
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                allOf:
+                  - type: object
+                    required: [id]
+                    properties:
+                      id:
+                        type: string
+                  - $ref: '#/components/schemas/UpdateRequisitionSkillRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkillBulkResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    patch:
+      tags:
+        - RequisitionSkills
+      summary: Bulk partial-update RequisitionSkills (atomic)
+      operationId: bulkPatchRequisitionSkills
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [ids, patch]
+                  properties:
+                    ids:
+                      type: array
+                      items: { type: string }
+                    patch:
+                      type: object
+                      additionalProperties: true
+                - type: object
+                  required: [items]
+                  properties:
+                    items:
+                      type: array
+                      items:
+                        type: object
+                        required: [id, patch]
+                        properties:
+                          id: { type: string }
+                          patch: { type: object, additionalProperties: true }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkillBulkResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/requisition_skills/upsert:
+    post:
+      tags:
+        - RequisitionSkills
+      summary: Upsert RequisitionSkill
+      operationId: upsertRequisitionSkill
+      parameters:
+        - name: key_field
+          in: query
+          schema:
+            type: string
+        - name: key_value
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequisitionSkillRequest'
+      responses:
+        '200':
+          description: Upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkill'
+
+  /api/v1/requisition_skills/trash:
+    get:
+      tags:
+        - RequisitionSkills
+      summary: List deleted RequisitionSkills
+      operationId: listDeletedRequisitionSkills
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PerPageParam'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkillList'
+
+  /api/v1/requisition_skills/{id}/restore:
+    parameters:
+      - $ref: '#/components/parameters/IdParam'
+    post:
+      tags:
+        - RequisitionSkills
+      summary: Restore deleted RequisitionSkill
+      operationId: restoreRequisitionSkill
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkill'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/requisition_skills/empty:
+    delete:
+      tags:
+        - RequisitionSkills
+      summary: Empty trash for RequisitionSkills
+      operationId: emptyTrashRequisitionSkills
+      responses:
+        '200':
+          description: Trash emptied
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted_count:
+                    type: integer
+
+  /api/v1/requisition_skills/delete/bulk:
+    post:
+      tags:
+        - RequisitionSkills
+      summary: Bulk soft-delete RequisitionSkills by ids (atomic)
+      operationId: bulkDeleteRequisitionSkills
+      requestBody:
+        $ref: '#/components/requestBodies/BatchIds'
+      responses:
+        '200':
+          description: Soft-deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  soft_deleted: { type: integer }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/requisition_skills/restore/bulk:
+    post:
+      tags:
+        - RequisitionSkills
+      summary: Bulk restore RequisitionSkills by ids (atomic)
+      operationId: bulkRestoreRequisitionSkills
+      requestBody:
+        $ref: '#/components/requestBodies/BatchIds'
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequisitionSkillBulkResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/requisition_skills/restore/all:
+    post:
+      tags:
+        - RequisitionSkills
+      summary: Restore all soft-deleted RequisitionSkills
+      operationId: restoreAllRequisitionSkills
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  restored: { type: integer }
+
+  /api/v1/requisition_skills/trash/bulk:
+    delete:
+      tags:
+        - RequisitionSkills
+      summary: Bulk permanently-delete RequisitionSkills from trash by ids (atomic)
+      operationId: bulkPermanentDeleteRequisitionSkills
+      requestBody:
+        $ref: '#/components/requestBodies/BatchIds'
+      responses:
+        '200':
+          description: Permanently deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  permanently_deleted: { type: integer }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
 components:
   schemas:
     Candidate:
@@ -2201,7 +3305,7 @@ components:
         - company_id
         - candidate_id
         - requisition_id
-        - status
+        - stage_id
         - applied_at
         - metadata
       properties:
@@ -2217,8 +3321,28 @@ components:
         requisition_id:
           type: string
           format: uuid
-        status:
+        stage_id:
           type: string
+          format: uuid
+        last_stage_id:
+          nullable: true
+          type: string
+          format: uuid
+        stage_updated_at:
+          nullable: true
+          type: string
+          format: date-time
+        date_closed:
+          nullable: true
+          type: string
+          format: date-time
+        refuse_reason:
+          nullable: true
+          type: string
+        refused_at:
+          nullable: true
+          type: string
+          format: date-time
         applied_at:
           type: string
           format: date-time
@@ -2244,7 +3368,7 @@ components:
         - company_id
         - candidate_id
         - requisition_id
-        - status
+        - stage_id
         - applied_at
         - metadata
       properties:
@@ -2257,8 +3381,28 @@ components:
         requisition_id:
           type: string
           format: uuid
-        status:
+        stage_id:
           type: string
+          format: uuid
+        last_stage_id:
+          nullable: true
+          type: string
+          format: uuid
+        stage_updated_at:
+          nullable: true
+          type: string
+          format: date-time
+        date_closed:
+          nullable: true
+          type: string
+          format: date-time
+        refuse_reason:
+          nullable: true
+          type: string
+        refused_at:
+          nullable: true
+          type: string
+          format: date-time
         applied_at:
           type: string
           format: date-time
@@ -2271,7 +3415,7 @@ components:
         - company_id
         - candidate_id
         - requisition_id
-        - status
+        - stage_id
         - applied_at
         - metadata
       properties:
@@ -2284,8 +3428,28 @@ components:
         requisition_id:
           type: string
           format: uuid
-        status:
+        stage_id:
           type: string
+          format: uuid
+        last_stage_id:
+          nullable: true
+          type: string
+          format: uuid
+        stage_updated_at:
+          nullable: true
+          type: string
+          format: date-time
+        date_closed:
+          nullable: true
+          type: string
+          format: date-time
+        refuse_reason:
+          nullable: true
+          type: string
+        refused_at:
+          nullable: true
+          type: string
+          format: date-time
         applied_at:
           type: string
           format: date-time
@@ -2304,8 +3468,28 @@ components:
         requisition_id:
           type: string
           format: uuid
-        status:
+        stage_id:
           type: string
+          format: uuid
+        last_stage_id:
+          nullable: true
+          type: string
+          format: uuid
+        stage_updated_at:
+          nullable: true
+          type: string
+          format: date-time
+        date_closed:
+          nullable: true
+          type: string
+          format: date-time
+        refuse_reason:
+          nullable: true
+          type: string
+        refused_at:
+          nullable: true
+          type: string
+          format: date-time
         applied_at:
           type: string
           format: date-time
@@ -2346,6 +3530,10 @@ components:
         employment_type:
           nullable: true
           type: string
+        letter_template_id:
+          nullable: true
+          type: string
+          format: uuid
         status:
           type: string
         offered_at:
@@ -2392,6 +3580,10 @@ components:
         employment_type:
           nullable: true
           type: string
+        letter_template_id:
+          nullable: true
+          type: string
+          format: uuid
         status:
           type: string
         offered_at:
@@ -2425,6 +3617,10 @@ components:
         employment_type:
           nullable: true
           type: string
+        letter_template_id:
+          nullable: true
+          type: string
+          format: uuid
         status:
           type: string
         offered_at:
@@ -2453,6 +3649,10 @@ components:
         employment_type:
           nullable: true
           type: string
+        letter_template_id:
+          nullable: true
+          type: string
+          format: uuid
         status:
           type: string
         offered_at:
@@ -2483,6 +3683,7 @@ components:
         - company_id
         - title
         - headcount
+        - filled_headcount
         - status
         - opened_by
         - metadata
@@ -2504,6 +3705,9 @@ components:
         title:
           type: string
         headcount:
+          type: integer
+          format: int32
+        filled_headcount:
           type: integer
           format: int32
         employment_type:
@@ -2543,6 +3747,7 @@ components:
         - company_id
         - title
         - headcount
+        - filled_headcount
         - status
         - opened_by
         - metadata
@@ -2561,6 +3766,9 @@ components:
         title:
           type: string
         headcount:
+          type: integer
+          format: int32
+        filled_headcount:
           type: integer
           format: int32
         employment_type:
@@ -2587,6 +3795,7 @@ components:
         - company_id
         - title
         - headcount
+        - filled_headcount
         - status
         - opened_by
         - metadata
@@ -2605,6 +3814,9 @@ components:
         title:
           type: string
         headcount:
+          type: integer
+          format: int32
+        filled_headcount:
           type: integer
           format: int32
         employment_type:
@@ -2644,6 +3856,9 @@ components:
         headcount:
           type: integer
           format: int32
+        filled_headcount:
+          type: integer
+          format: int32
         employment_type:
           nullable: true
           type: string
@@ -2669,6 +3884,356 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/JobRequisition'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    OfferLetterTemplate:
+      type: object
+      required:
+        - id
+        - company_id
+        - name
+        - subject
+        - body
+        - metadata
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        metadata:
+          type: object
+
+    OfferLetterTemplateBulkResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfferLetterTemplate'
+        total: { type: integer }
+        failed: { type: integer }
+        errors:
+          type: array
+          items: { type: string }
+
+    CreateOfferLetterTemplateRequest:
+      type: object
+      required:
+        - company_id
+        - name
+        - subject
+        - body
+        - metadata
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        metadata:
+          type: object
+
+    UpdateOfferLetterTemplateRequest:
+      type: object
+      required:
+        - company_id
+        - name
+        - subject
+        - body
+        - metadata
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        metadata:
+          type: object
+
+    PatchOfferLetterTemplateRequest:
+      type: object
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        metadata:
+          type: object
+
+    OfferLetterTemplateList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OfferLetterTemplate'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    RecruitmentStage:
+      type: object
+      required:
+        - id
+        - company_id
+        - name
+        - sequence
+        - is_hired
+        - folded
+        - metadata
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        sequence:
+          type: integer
+          format: int32
+        is_hired:
+          type: boolean
+        folded:
+          type: boolean
+        description:
+          nullable: true
+          type: string
+        metadata:
+          type: object
+
+    RecruitmentStageBulkResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecruitmentStage'
+        total: { type: integer }
+        failed: { type: integer }
+        errors:
+          type: array
+          items: { type: string }
+
+    CreateRecruitmentStageRequest:
+      type: object
+      required:
+        - company_id
+        - name
+        - sequence
+        - is_hired
+        - folded
+        - metadata
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        sequence:
+          type: integer
+          format: int32
+        is_hired:
+          type: boolean
+        folded:
+          type: boolean
+        description:
+          nullable: true
+          type: string
+        metadata:
+          type: object
+
+    UpdateRecruitmentStageRequest:
+      type: object
+      required:
+        - company_id
+        - name
+        - sequence
+        - is_hired
+        - folded
+        - metadata
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        sequence:
+          type: integer
+          format: int32
+        is_hired:
+          type: boolean
+        folded:
+          type: boolean
+        description:
+          nullable: true
+          type: string
+        metadata:
+          type: object
+
+    PatchRecruitmentStageRequest:
+      type: object
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        sequence:
+          type: integer
+          format: int32
+        is_hired:
+          type: boolean
+        folded:
+          type: boolean
+        description:
+          nullable: true
+          type: string
+        metadata:
+          type: object
+
+    RecruitmentStageList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecruitmentStage'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    RequisitionSkill:
+      type: object
+      required:
+        - id
+        - company_id
+        - requisition_id
+        - skill_id
+        - required_proficiency
+        - metadata
+      properties:
+        id:
+          type: string
+          format: uuid
+        company_id:
+          type: string
+          format: uuid
+        requisition_id:
+          type: string
+          format: uuid
+        skill_id:
+          type: string
+          format: uuid
+        required_proficiency:
+          type: string
+        metadata:
+          type: object
+
+    RequisitionSkillBulkResult:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequisitionSkill'
+        total: { type: integer }
+        failed: { type: integer }
+        errors:
+          type: array
+          items: { type: string }
+
+    CreateRequisitionSkillRequest:
+      type: object
+      required:
+        - company_id
+        - requisition_id
+        - skill_id
+        - required_proficiency
+        - metadata
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        requisition_id:
+          type: string
+          format: uuid
+        skill_id:
+          type: string
+          format: uuid
+        required_proficiency:
+          type: string
+        metadata:
+          type: object
+
+    UpdateRequisitionSkillRequest:
+      type: object
+      required:
+        - company_id
+        - requisition_id
+        - skill_id
+        - required_proficiency
+        - metadata
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        requisition_id:
+          type: string
+          format: uuid
+        skill_id:
+          type: string
+          format: uuid
+        required_proficiency:
+          type: string
+        metadata:
+          type: object
+
+    PatchRequisitionSkillRequest:
+      type: object
+      properties:
+        company_id:
+          type: string
+          format: uuid
+        requisition_id:
+          type: string
+          format: uuid
+        skill_id:
+          type: string
+          format: uuid
+        required_proficiency:
+          type: string
+        metadata:
+          type: object
+
+    RequisitionSkillList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequisitionSkill'
         meta:
           $ref: '#/components/schemas/PaginationMeta'
 

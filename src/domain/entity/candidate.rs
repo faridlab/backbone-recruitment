@@ -66,7 +66,7 @@ pub struct Candidate {
 impl Candidate {
     /// Create a builder for Candidate
     pub fn builder() -> CandidateBuilder {
-        CandidateBuilder::default()
+        <CandidateBuilder as Default>::default()
     }
 
     /// Create a new Candidate with required fields

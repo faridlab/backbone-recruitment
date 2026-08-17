@@ -8,7 +8,7 @@
 //! ## Usage from other modules
 //!
 //! ```text
-//! use recruitment::exports::{CandidateDto, RecruitmentQueryService};
+//! use recruitment::exports::{CandidateDto};
 //! ```
 
 mod types;
@@ -42,9 +42,15 @@ pub use events::*;
 /// - `JobRequisitionDto` - Data transfer object for JobRequisition
 /// - `JobRequisitionSummary` - Summary view of JobRequisition
 /// - `JobRequisitionId` - Type-safe ID wrapper
-///
-/// ## Public Services
-/// - `RecruitmentQueryService` - Read-only queries
+/// - `OfferLetterTemplateDto` - Data transfer object for OfferLetterTemplate
+/// - `OfferLetterTemplateSummary` - Summary view of OfferLetterTemplate
+/// - `OfferLetterTemplateId` - Type-safe ID wrapper
+/// - `RecruitmentStageDto` - Data transfer object for RecruitmentStage
+/// - `RecruitmentStageSummary` - Summary view of RecruitmentStage
+/// - `RecruitmentStageId` - Type-safe ID wrapper
+/// - `RequisitionSkillDto` - Data transfer object for RequisitionSkill
+/// - `RequisitionSkillSummary` - Summary view of RequisitionSkill
+/// - `RequisitionSkillId` - Type-safe ID wrapper
 ///
 /// ## Public Events
 /// - `CandidateCreatedEvent` - Published when Candidate is created
@@ -62,4 +68,13 @@ pub use events::*;
 /// - `JobRequisitionCreatedEvent` - Published when JobRequisition is created
 /// - `JobRequisitionUpdatedEvent` - Published when JobRequisition is updated
 /// - `JobRequisitionDeletedEvent` - Published when JobRequisition is deleted
+/// - `OfferLetterTemplateCreatedEvent` - Published when OfferLetterTemplate is created
+/// - `OfferLetterTemplateUpdatedEvent` - Published when OfferLetterTemplate is updated
+/// - `OfferLetterTemplateDeletedEvent` - Published when OfferLetterTemplate is deleted
+/// - `RecruitmentStageCreatedEvent` - Published when RecruitmentStage is created
+/// - `RecruitmentStageUpdatedEvent` - Published when RecruitmentStage is updated
+/// - `RecruitmentStageDeletedEvent` - Published when RecruitmentStage is deleted
+/// - `RequisitionSkillCreatedEvent` - Published when RequisitionSkill is created
+/// - `RequisitionSkillUpdatedEvent` - Published when RequisitionSkill is updated
+/// - `RequisitionSkillDeletedEvent` - Published when RequisitionSkill is deleted
 pub struct ExportSummary;

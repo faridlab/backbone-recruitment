@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use anyhow::Result;
 use uuid::Uuid;
 
-use crate::domain::entity::{JobApplication, ApplicationStatus};
+use crate::domain::entity::JobApplication;
 
 /// Pagination parameters for list queries
 #[derive(Debug, Clone, Default)]
@@ -47,13 +47,15 @@ pub struct JobApplicationFilter {
     pub company_id: Option<Uuid>,
     pub candidate_id: Option<Uuid>,
     pub requisition_id: Option<Uuid>,
-    pub status: Option<ApplicationStatus>,
+    pub stage_id: Option<Uuid>,
+    pub last_stage_id: Option<Uuid>,
+    pub refuse_reason: Option<String>,
 }
 
 impl JobApplicationFilter {
     /// Check if any filter is set
     pub fn has_filters(&self) -> bool {
-        self.company_id.is_some() || self.candidate_id.is_some() || self.requisition_id.is_some() || self.status.is_some()
+        self.company_id.is_some() || self.candidate_id.is_some() || self.requisition_id.is_some() || self.stage_id.is_some() || self.last_stage_id.is_some() || self.refuse_reason.is_some()
     }
 }
 

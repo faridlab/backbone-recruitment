@@ -179,7 +179,12 @@ pub struct JobApplicationDto {
     pub company_id: Uuid,
     pub candidate_id: Uuid,
     pub requisition_id: Uuid,
-    pub status: ApplicationStatus,
+    pub stage_id: Uuid,
+    pub last_stage_id: Option<Uuid>,
+    pub stage_updated_at: Option<DateTime<Utc>>,
+    pub date_closed: Option<DateTime<Utc>>,
+    pub refuse_reason: Option<String>,
+    pub refused_at: Option<DateTime<Utc>>,
     pub applied_at: DateTime<Utc>,
     pub metadata: serde_json::Value,
 }
@@ -188,7 +193,6 @@ pub struct JobApplicationDto {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JobApplicationSummary {
     pub id: JobApplicationId,
-    pub status: ApplicationStatus,
 }
 
 /// Reference to JobApplication for foreign key relationships
@@ -239,6 +243,7 @@ pub struct JobOfferDto {
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
     pub employment_type: Option<String>,
+    pub letter_template_id: Option<Uuid>,
     pub status: OfferStatus,
     pub offered_at: Option<DateTime<Utc>>,
     pub accepted_at: Option<DateTime<Utc>>,
@@ -301,6 +306,7 @@ pub struct JobRequisitionDto {
     pub position_id: Option<Uuid>,
     pub title: String,
     pub headcount: i32,
+    pub filled_headcount: i32,
     pub employment_type: Option<String>,
     pub status: RequisitionStatus,
     pub opened_by: Uuid,
@@ -321,6 +327,181 @@ pub struct JobRequisitionSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JobRequisitionRef {
     pub id: JobRequisitionId,
+}
+
+// ============================================================================
+// OFFERLETTERTEMPLATE TYPES
+// ============================================================================
+
+/// Type-safe ID for OfferLetterTemplate
+///
+/// Use this instead of raw Uuid for type safety across modules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct OfferLetterTemplateId(pub Uuid);
+
+impl OfferLetterTemplateId {
+    pub fn new(id: Uuid) -> Self {
+        Self(id)
+    }
+
+    pub fn into_inner(self) -> Uuid {
+        self.0
+    }
+}
+
+impl From<Uuid> for OfferLetterTemplateId {
+    fn from(id: Uuid) -> Self {
+        Self(id)
+    }
+}
+
+impl From<OfferLetterTemplateId> for Uuid {
+    fn from(id: OfferLetterTemplateId) -> Self {
+        id.0
+    }
+}
+
+/// Data transfer object for OfferLetterTemplate
+///
+/// This is the public representation of OfferLetterTemplate for other modules.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OfferLetterTemplateDto {
+    pub id: OfferLetterTemplateId,
+    pub company_id: Uuid,
+    pub name: String,
+    pub subject: String,
+    pub body: String,
+    pub metadata: serde_json::Value,
+}
+
+/// Summary view of OfferLetterTemplate for list displays
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OfferLetterTemplateSummary {
+    pub id: OfferLetterTemplateId,
+    pub name: String,
+}
+
+/// Reference to OfferLetterTemplate for foreign key relationships
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OfferLetterTemplateRef {
+    pub id: OfferLetterTemplateId,
+}
+
+// ============================================================================
+// RECRUITMENTSTAGE TYPES
+// ============================================================================
+
+/// Type-safe ID for RecruitmentStage
+///
+/// Use this instead of raw Uuid for type safety across modules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct RecruitmentStageId(pub Uuid);
+
+impl RecruitmentStageId {
+    pub fn new(id: Uuid) -> Self {
+        Self(id)
+    }
+
+    pub fn into_inner(self) -> Uuid {
+        self.0
+    }
+}
+
+impl From<Uuid> for RecruitmentStageId {
+    fn from(id: Uuid) -> Self {
+        Self(id)
+    }
+}
+
+impl From<RecruitmentStageId> for Uuid {
+    fn from(id: RecruitmentStageId) -> Self {
+        id.0
+    }
+}
+
+/// Data transfer object for RecruitmentStage
+///
+/// This is the public representation of RecruitmentStage for other modules.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecruitmentStageDto {
+    pub id: RecruitmentStageId,
+    pub company_id: Uuid,
+    pub name: String,
+    pub sequence: i32,
+    pub is_hired: bool,
+    pub folded: bool,
+    pub description: Option<String>,
+    pub metadata: serde_json::Value,
+}
+
+/// Summary view of RecruitmentStage for list displays
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecruitmentStageSummary {
+    pub id: RecruitmentStageId,
+    pub name: String,
+}
+
+/// Reference to RecruitmentStage for foreign key relationships
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecruitmentStageRef {
+    pub id: RecruitmentStageId,
+}
+
+// ============================================================================
+// REQUISITIONSKILL TYPES
+// ============================================================================
+
+/// Type-safe ID for RequisitionSkill
+///
+/// Use this instead of raw Uuid for type safety across modules.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct RequisitionSkillId(pub Uuid);
+
+impl RequisitionSkillId {
+    pub fn new(id: Uuid) -> Self {
+        Self(id)
+    }
+
+    pub fn into_inner(self) -> Uuid {
+        self.0
+    }
+}
+
+impl From<Uuid> for RequisitionSkillId {
+    fn from(id: Uuid) -> Self {
+        Self(id)
+    }
+}
+
+impl From<RequisitionSkillId> for Uuid {
+    fn from(id: RequisitionSkillId) -> Self {
+        id.0
+    }
+}
+
+/// Data transfer object for RequisitionSkill
+///
+/// This is the public representation of RequisitionSkill for other modules.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequisitionSkillDto {
+    pub id: RequisitionSkillId,
+    pub company_id: Uuid,
+    pub requisition_id: Uuid,
+    pub skill_id: Uuid,
+    pub required_proficiency: ProficiencyLevel,
+    pub metadata: serde_json::Value,
+}
+
+/// Summary view of RequisitionSkill for list displays
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequisitionSkillSummary {
+    pub id: RequisitionSkillId,
+}
+
+/// Reference to RequisitionSkill for foreign key relationships
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequisitionSkillRef {
+    pub id: RequisitionSkillId,
 }
 
 // ============================================================================

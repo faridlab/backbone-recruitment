@@ -42,6 +42,11 @@ models:
         attributes: ["@required", "@non_negative"]
         description: "Number of openings requested"
 
+      filled_headcount:
+        type: int
+        attributes: ["@required", "@non_negative", "@default(0)"]
+        description: "Openings filled by applications that reached a hired stage — remaining vacancies are always headcount minus this; the original ask is never mutated so the plan stays auditable"
+
       employment_type:
         type: string?
         attributes: ["@length(max=60)"]
@@ -50,7 +55,8 @@ models:
       status:
         type: RequisitionStatus
         attributes: ["@required", "@default(draft)"]
-        description: "Lifecycle status"
+        lifecycle: hand_set
+        description: "Lifecycle status (hand-set by the open/close verbs)"
 
       opened_by:
         type: uuid

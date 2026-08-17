@@ -10,6 +10,9 @@ pub mod interview_dto;
 pub mod job_application_dto;
 pub mod job_offer_dto;
 pub mod job_requisition_dto;
+pub mod offer_letter_template_dto;
+pub mod recruitment_stage_dto;
+pub mod requisition_skill_dto;
 
 // Re-exports
 pub use candidate_dto::{
@@ -51,6 +54,30 @@ pub use job_requisition_dto::{
     JobRequisitionResponseDto,
     JobRequisitionListResponseDto,
     JobRequisitionSummaryDto,
+};
+pub use offer_letter_template_dto::{
+    CreateOfferLetterTemplateDto,
+    UpdateOfferLetterTemplateDto,
+    PatchOfferLetterTemplateDto,
+    OfferLetterTemplateResponseDto,
+    OfferLetterTemplateListResponseDto,
+    OfferLetterTemplateSummaryDto,
+};
+pub use recruitment_stage_dto::{
+    CreateRecruitmentStageDto,
+    UpdateRecruitmentStageDto,
+    PatchRecruitmentStageDto,
+    RecruitmentStageResponseDto,
+    RecruitmentStageListResponseDto,
+    RecruitmentStageSummaryDto,
+};
+pub use requisition_skill_dto::{
+    CreateRequisitionSkillDto,
+    UpdateRequisitionSkillDto,
+    PatchRequisitionSkillDto,
+    RequisitionSkillResponseDto,
+    RequisitionSkillListResponseDto,
+    RequisitionSkillSummaryDto,
 };
 
 // Common pagination types

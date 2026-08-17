@@ -12,6 +12,12 @@ pub mod job_offer_events;
 pub mod job_offer_event_handlers;
 pub mod job_requisition_events;
 pub mod job_requisition_event_handlers;
+pub mod offer_letter_template_events;
+pub mod offer_letter_template_event_handlers;
+pub mod recruitment_stage_events;
+pub mod recruitment_stage_event_handlers;
+pub mod requisition_skill_events;
+pub mod requisition_skill_event_handlers;
 
 pub use candidate_events::{CandidateEvent, CandidateEventPublisher, NoopCandidateEventPublisher};
 pub use candidate_event_handlers::CandidateEventHandler;
@@ -23,6 +29,12 @@ pub use job_offer_events::{JobOfferEvent, JobOfferEventPublisher, NoopJobOfferEv
 pub use job_offer_event_handlers::JobOfferEventHandler;
 pub use job_requisition_events::{JobRequisitionEvent, JobRequisitionEventPublisher, NoopJobRequisitionEventPublisher};
 pub use job_requisition_event_handlers::JobRequisitionEventHandler;
+pub use offer_letter_template_events::{OfferLetterTemplateEvent, OfferLetterTemplateEventPublisher, NoopOfferLetterTemplateEventPublisher};
+pub use offer_letter_template_event_handlers::OfferLetterTemplateEventHandler;
+pub use recruitment_stage_events::{RecruitmentStageEvent, RecruitmentStageEventPublisher, NoopRecruitmentStageEventPublisher};
+pub use recruitment_stage_event_handlers::RecruitmentStageEventHandler;
+pub use requisition_skill_events::{RequisitionSkillEvent, RequisitionSkillEventPublisher, NoopRequisitionSkillEventPublisher};
+pub use requisition_skill_event_handlers::RequisitionSkillEventHandler;
 
 // <<< CUSTOM
 // END CUSTOM

@@ -14,6 +14,9 @@ use crate::application::service::InterviewService;
 use crate::application::service::JobApplicationService;
 use crate::application::service::JobOfferService;
 use crate::application::service::JobRequisitionService;
+use crate::application::service::OfferLetterTemplateService;
+use crate::application::service::RecruitmentStageService;
+use crate::application::service::RequisitionSkillService;
 
 /// Application state for dependency injection.
 ///
@@ -43,6 +46,12 @@ pub struct AppState {
     pub job_offer_service: Arc<JobOfferService>,
     /// JobRequisition service
     pub job_requisition_service: Arc<JobRequisitionService>,
+    /// OfferLetterTemplate service
+    pub offer_letter_template_service: Arc<OfferLetterTemplateService>,
+    /// RecruitmentStage service
+    pub recruitment_stage_service: Arc<RecruitmentStageService>,
+    /// RequisitionSkill service
+    pub requisition_skill_service: Arc<RequisitionSkillService>,
 }
 
 impl AppState {
@@ -52,7 +61,10 @@ impl AppState {
         interview_service: Arc<InterviewService>,
         job_application_service: Arc<JobApplicationService>,
         job_offer_service: Arc<JobOfferService>,
-        job_requisition_service: Arc<JobRequisitionService>
+        job_requisition_service: Arc<JobRequisitionService>,
+        offer_letter_template_service: Arc<OfferLetterTemplateService>,
+        recruitment_stage_service: Arc<RecruitmentStageService>,
+        requisition_skill_service: Arc<RequisitionSkillService>
     ) -> Self {
         Self {
             candidate_service,
@@ -60,6 +72,9 @@ impl AppState {
             job_application_service,
             job_offer_service,
             job_requisition_service,
+            offer_letter_template_service,
+            recruitment_stage_service,
+            requisition_skill_service,
         }
     }
 
@@ -71,6 +86,9 @@ impl AppState {
             job_application_service: module.job_application_service.clone(),
             job_offer_service: module.job_offer_service.clone(),
             job_requisition_service: module.job_requisition_service.clone(),
+            offer_letter_template_service: module.offer_letter_template_service.clone(),
+            recruitment_stage_service: module.recruitment_stage_service.clone(),
+            requisition_skill_service: module.requisition_skill_service.clone(),
         }
     }
 }
@@ -85,6 +103,9 @@ pub struct AppStateBuilder {
     job_application_service: Option<Arc<JobApplicationService>>,
     job_offer_service: Option<Arc<JobOfferService>>,
     job_requisition_service: Option<Arc<JobRequisitionService>>,
+    offer_letter_template_service: Option<Arc<OfferLetterTemplateService>>,
+    recruitment_stage_service: Option<Arc<RecruitmentStageService>>,
+    requisition_skill_service: Option<Arc<RequisitionSkillService>>,
 }
 
 impl AppStateBuilder {
@@ -123,6 +144,24 @@ impl AppStateBuilder {
         self
     }
 
+    /// Set the OfferLetterTemplate service.
+    pub fn with_offer_letter_template_service(mut self, service: Arc<OfferLetterTemplateService>) -> Self {
+        self.offer_letter_template_service = Some(service);
+        self
+    }
+
+    /// Set the RecruitmentStage service.
+    pub fn with_recruitment_stage_service(mut self, service: Arc<RecruitmentStageService>) -> Self {
+        self.recruitment_stage_service = Some(service);
+        self
+    }
+
+    /// Set the RequisitionSkill service.
+    pub fn with_requisition_skill_service(mut self, service: Arc<RequisitionSkillService>) -> Self {
+        self.requisition_skill_service = Some(service);
+        self
+    }
+
     /// Build the AppState.
     ///
     /// # Panics
@@ -135,6 +174,9 @@ impl AppStateBuilder {
             job_application_service: self.job_application_service.expect("job_application_service is required"),
             job_offer_service: self.job_offer_service.expect("job_offer_service is required"),
             job_requisition_service: self.job_requisition_service.expect("job_requisition_service is required"),
+            offer_letter_template_service: self.offer_letter_template_service.expect("offer_letter_template_service is required"),
+            recruitment_stage_service: self.recruitment_stage_service.expect("recruitment_stage_service is required"),
+            requisition_skill_service: self.requisition_skill_service.expect("requisition_skill_service is required"),
         }
     }
 }

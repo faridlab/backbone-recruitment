@@ -44,6 +44,8 @@ pub struct CreateJobOfferDto {
     pub proposed_salary: Option<Decimal>,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "employment_type")]
     pub employment_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "letter_template_id")]
+    pub letter_template_id: Option<Uuid>,
     pub status: OfferStatus,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "offered_at")]
     pub offered_at: Option<DateTime<Utc>>,
@@ -74,6 +76,8 @@ pub struct UpdateJobOfferDto {
     pub proposed_salary: Option<Decimal>,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "employment_type")]
     pub employment_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "letter_template_id")]
+    pub letter_template_id: Option<Uuid>,
     pub status: OfferStatus,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "offered_at")]
     pub offered_at: Option<DateTime<Utc>>,
@@ -104,6 +108,8 @@ pub struct PatchJobOfferDto {
     pub proposed_salary: Option<Decimal>,
     #[serde(skip_serializing_if = "Option::is_none", alias = "employment_type")]
     pub employment_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", alias = "letter_template_id")]
+    pub letter_template_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<OfferStatus>,
     #[serde(skip_serializing_if = "Option::is_none", alias = "offered_at")]
@@ -115,7 +121,7 @@ pub struct PatchJobOfferDto {
 impl PatchJobOfferDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.application_id.is_some() || self.proposed_salary.is_some() || self.employment_type.is_some() || self.status.is_some() || self.offered_at.is_some() || self.accepted_at.is_some()
+        self.company_id.is_some() || self.application_id.is_some() || self.proposed_salary.is_some() || self.employment_type.is_some() || self.letter_template_id.is_some() || self.status.is_some() || self.offered_at.is_some() || self.accepted_at.is_some()
     }
 }
 
@@ -139,6 +145,7 @@ pub struct JobOfferResponseDto {
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
     pub employment_type: Option<String>,
+    pub letter_template_id: Option<Uuid>,
     pub status: OfferStatus,
     pub offered_at: Option<DateTime<Utc>>,
     pub accepted_at: Option<DateTime<Utc>>,
@@ -217,6 +224,7 @@ impl From<JobOffer> for JobOfferResponseDto {
             application_id: entity.application_id,
             proposed_salary: entity.proposed_salary,
             employment_type: entity.employment_type,
+            letter_template_id: entity.letter_template_id,
             status: entity.status,
             offered_at: entity.offered_at,
             accepted_at: entity.accepted_at,
@@ -246,6 +254,7 @@ impl From<CreateJobOfferDto> for JobOffer {
             application_id: dto.application_id,
             proposed_salary: dto.proposed_salary,
             employment_type: dto.employment_type,
+            letter_template_id: dto.letter_template_id,
             status: dto.status,
             offered_at: dto.offered_at,
             accepted_at: dto.accepted_at,
@@ -262,6 +271,7 @@ impl From<&JobOffer> for JobOfferResponseDto {
             application_id: entity.application_id.clone(),
             proposed_salary: entity.proposed_salary.clone(),
             employment_type: entity.employment_type.clone(),
+            letter_template_id: entity.letter_template_id.clone(),
             status: entity.status.clone(),
             offered_at: entity.offered_at.clone(),
             accepted_at: entity.accepted_at.clone(),
@@ -282,6 +292,7 @@ impl backbone_core::ApplyUpdateDto<UpdateJobOfferDto> for JobOffer {
         self.application_id = dto.application_id;
         self.proposed_salary = dto.proposed_salary;
         self.employment_type = dto.employment_type;
+        self.letter_template_id = dto.letter_template_id;
         self.status = dto.status;
         self.offered_at = dto.offered_at;
         self.accepted_at = dto.accepted_at;

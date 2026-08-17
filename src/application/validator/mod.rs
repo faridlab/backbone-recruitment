@@ -10,12 +10,18 @@ pub mod interview_validator;
 pub mod job_application_validator;
 pub mod job_offer_validator;
 pub mod job_requisition_validator;
+pub mod offer_letter_template_validator;
+pub mod recruitment_stage_validator;
+pub mod requisition_skill_validator;
 
 pub use candidate_validator::{CandidateValidator, candidate_validator};
 pub use interview_validator::{InterviewValidator, interview_validator};
 pub use job_application_validator::{JobApplicationValidator, job_application_validator};
 pub use job_offer_validator::{JobOfferValidator, job_offer_validator};
 pub use job_requisition_validator::{JobRequisitionValidator, job_requisition_validator};
+pub use offer_letter_template_validator::{OfferLetterTemplateValidator, offer_letter_template_validator};
+pub use recruitment_stage_validator::{RecruitmentStageValidator, recruitment_stage_validator};
+pub use requisition_skill_validator::{RequisitionSkillValidator, requisition_skill_validator};
 
 // <<< CUSTOM
 // END CUSTOM

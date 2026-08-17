@@ -45,6 +45,9 @@ pub struct CreateJobRequisitionDto {
     pub title: String,
     #[cfg_attr(feature = "openapi", schema(example = 42))]
     pub headcount: i32,
+    #[cfg_attr(feature = "openapi", schema(example = 42))]
+    #[serde(alias = "filled_headcount")]
+    pub filled_headcount: i32,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "employment_type")]
     pub employment_type: Option<String>,
     pub status: RequisitionStatus,
@@ -81,6 +84,9 @@ pub struct UpdateJobRequisitionDto {
     pub title: String,
     #[cfg_attr(feature = "openapi", schema(example = 42))]
     pub headcount: i32,
+    #[cfg_attr(feature = "openapi", schema(example = 42))]
+    #[serde(alias = "filled_headcount")]
+    pub filled_headcount: i32,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "employment_type")]
     pub employment_type: Option<String>,
     pub status: RequisitionStatus,
@@ -119,6 +125,9 @@ pub struct PatchJobRequisitionDto {
     #[cfg_attr(feature = "openapi", schema(example = 42))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headcount: Option<i32>,
+    #[cfg_attr(feature = "openapi", schema(example = 42))]
+    #[serde(skip_serializing_if = "Option::is_none", alias = "filled_headcount")]
+    pub filled_headcount: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none", alias = "employment_type")]
     pub employment_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -135,7 +144,7 @@ pub struct PatchJobRequisitionDto {
 impl PatchJobRequisitionDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.department_id.is_some() || self.position_id.is_some() || self.title.is_some() || self.headcount.is_some() || self.employment_type.is_some() || self.status.is_some() || self.opened_by.is_some() || self.budget.is_some() || self.deadline.is_some()
+        self.company_id.is_some() || self.department_id.is_some() || self.position_id.is_some() || self.title.is_some() || self.headcount.is_some() || self.filled_headcount.is_some() || self.employment_type.is_some() || self.status.is_some() || self.opened_by.is_some() || self.budget.is_some() || self.deadline.is_some()
     }
 }
 
@@ -161,6 +170,8 @@ pub struct JobRequisitionResponseDto {
     pub title: String,
     #[cfg_attr(feature = "openapi", schema(example = 42))]
     pub headcount: i32,
+    #[cfg_attr(feature = "openapi", schema(example = 42))]
+    pub filled_headcount: i32,
     pub employment_type: Option<String>,
     pub status: RequisitionStatus,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -243,6 +254,7 @@ impl From<JobRequisition> for JobRequisitionResponseDto {
             position_id: entity.position_id,
             title: entity.title,
             headcount: entity.headcount,
+            filled_headcount: entity.filled_headcount,
             employment_type: entity.employment_type,
             status: entity.status,
             opened_by: entity.opened_by,
@@ -275,6 +287,7 @@ impl From<CreateJobRequisitionDto> for JobRequisition {
             position_id: dto.position_id,
             title: dto.title,
             headcount: dto.headcount,
+            filled_headcount: dto.filled_headcount,
             employment_type: dto.employment_type,
             status: dto.status,
             opened_by: dto.opened_by,
@@ -294,6 +307,7 @@ impl From<&JobRequisition> for JobRequisitionResponseDto {
             position_id: entity.position_id.clone(),
             title: entity.title.clone(),
             headcount: entity.headcount.clone(),
+            filled_headcount: entity.filled_headcount.clone(),
             employment_type: entity.employment_type.clone(),
             status: entity.status.clone(),
             opened_by: entity.opened_by.clone(),
@@ -317,6 +331,7 @@ impl backbone_core::ApplyUpdateDto<UpdateJobRequisitionDto> for JobRequisition {
         self.position_id = dto.position_id;
         self.title = dto.title;
         self.headcount = dto.headcount;
+        self.filled_headcount = dto.filled_headcount;
         self.employment_type = dto.employment_type;
         self.status = dto.status;
         self.opened_by = dto.opened_by;

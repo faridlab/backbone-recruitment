@@ -7,11 +7,14 @@ pub mod interview;
 pub mod job_application;
 pub mod job_offer;
 pub mod job_requisition;
+pub mod offer_letter_template;
+pub mod recruitment_stage;
+pub mod requisition_skill;
 pub mod candidate_source;
 pub mod interview_status;
-pub mod application_status;
 pub mod offer_status;
 pub mod requisition_status;
+pub mod proficiency_level;
 
 // Re-exports
 pub use candidate::Candidate;
@@ -29,11 +32,20 @@ pub use job_offer::JobOfferId;
 pub use job_requisition::JobRequisition;
 pub use job_requisition::JobRequisitionBuilder;
 pub use job_requisition::JobRequisitionId;
+pub use offer_letter_template::OfferLetterTemplate;
+pub use offer_letter_template::OfferLetterTemplateBuilder;
+pub use offer_letter_template::OfferLetterTemplateId;
+pub use recruitment_stage::RecruitmentStage;
+pub use recruitment_stage::RecruitmentStageBuilder;
+pub use recruitment_stage::RecruitmentStageId;
+pub use requisition_skill::RequisitionSkill;
+pub use requisition_skill::RequisitionSkillBuilder;
+pub use requisition_skill::RequisitionSkillId;
 pub use candidate_source::CandidateSource;
 pub use interview_status::InterviewStatus;
-pub use application_status::ApplicationStatus;
 pub use offer_status::OfferStatus;
 pub use requisition_status::RequisitionStatus;
+pub use proficiency_level::ProficiencyLevel;
 
 // ==========================================================================
 // Entity Trait
