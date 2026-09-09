@@ -35,9 +35,6 @@ use crate::domain::entity::OfferStatus;
 #[serde(rename_all = "camelCase")]
 pub struct CreateJobOfferDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "application_id")]
     pub application_id: Uuid,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "proposed_salary")]
@@ -66,9 +63,6 @@ pub struct CreateJobOfferDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateJobOfferDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "application_id")]
     pub application_id: Uuid,
@@ -99,9 +93,6 @@ pub struct UpdateJobOfferDto {
 #[serde(rename_all = "camelCase")]
 pub struct PatchJobOfferDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(skip_serializing_if = "Option::is_none", alias = "company_id")]
-    pub company_id: Option<Uuid>,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "application_id")]
     pub application_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none", alias = "proposed_salary")]
@@ -121,7 +112,7 @@ pub struct PatchJobOfferDto {
 impl PatchJobOfferDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.application_id.is_some() || self.proposed_salary.is_some() || self.employment_type.is_some() || self.letter_template_id.is_some() || self.status.is_some() || self.offered_at.is_some() || self.accepted_at.is_some()
+        self.application_id.is_some() || self.proposed_salary.is_some() || self.employment_type.is_some() || self.letter_template_id.is_some() || self.status.is_some() || self.offered_at.is_some() || self.accepted_at.is_some()
     }
 }
 
@@ -139,8 +130,6 @@ impl PatchJobOfferDto {
 pub struct JobOfferResponseDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
@@ -206,9 +195,9 @@ impl JobOfferListResponseDto {
 #[serde(rename_all = "camelCase")]
 pub struct JobOfferSummaryDto {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
+    pub employment_type: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -220,7 +209,6 @@ impl From<JobOffer> for JobOfferResponseDto {
     fn from(entity: JobOffer) -> Self {
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             application_id: entity.application_id,
             proposed_salary: entity.proposed_salary,
             employment_type: entity.employment_type,
@@ -238,9 +226,9 @@ impl From<JobOffer> for JobOfferSummaryDto {
         let created_at = backbone_core::PersistentEntity::created_at(&entity);
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             application_id: entity.application_id,
             proposed_salary: entity.proposed_salary,
+            employment_type: entity.employment_type,
             created_at,
         }
     }
@@ -250,7 +238,6 @@ impl From<CreateJobOfferDto> for JobOffer {
     fn from(dto: CreateJobOfferDto) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id: dto.company_id,
             application_id: dto.application_id,
             proposed_salary: dto.proposed_salary,
             employment_type: dto.employment_type,
@@ -267,7 +254,6 @@ impl From<&JobOffer> for JobOfferResponseDto {
     fn from(entity: &JobOffer) -> Self {
         Self {
             id: entity.id.clone(),
-            company_id: entity.company_id.clone(),
             application_id: entity.application_id.clone(),
             proposed_salary: entity.proposed_salary.clone(),
             employment_type: entity.employment_type.clone(),
@@ -288,7 +274,6 @@ impl backbone_core::FromCreateDto<CreateJobOfferDto> for JobOffer {
 
 impl backbone_core::ApplyUpdateDto<UpdateJobOfferDto> for JobOffer {
     fn apply_update(mut self, dto: UpdateJobOfferDto) -> backbone_core::ServiceResult<Self> {
-        self.company_id = dto.company_id;
         self.application_id = dto.application_id;
         self.proposed_salary = dto.proposed_salary;
         self.employment_type = dto.employment_type;
@@ -308,4 +293,3 @@ impl backbone_core::ApplyUpdateDto<UpdateJobOfferDto> for JobOffer {
 // Add custom DTOs specific to JobOffer here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
-

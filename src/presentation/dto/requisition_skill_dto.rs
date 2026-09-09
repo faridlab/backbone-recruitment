@@ -34,9 +34,6 @@ use crate::domain::entity::ProficiencyLevel;
 #[serde(rename_all = "camelCase")]
 pub struct CreateRequisitionSkillDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "requisition_id")]
     pub requisition_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -59,9 +56,6 @@ pub struct CreateRequisitionSkillDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateRequisitionSkillDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "requisition_id")]
     pub requisition_id: Uuid,
@@ -86,9 +80,6 @@ pub struct UpdateRequisitionSkillDto {
 #[serde(rename_all = "camelCase")]
 pub struct PatchRequisitionSkillDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(skip_serializing_if = "Option::is_none", alias = "company_id")]
-    pub company_id: Option<Uuid>,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "requisition_id")]
     pub requisition_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -101,7 +92,7 @@ pub struct PatchRequisitionSkillDto {
 impl PatchRequisitionSkillDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.requisition_id.is_some() || self.skill_id.is_some() || self.required_proficiency.is_some()
+        self.requisition_id.is_some() || self.skill_id.is_some() || self.required_proficiency.is_some()
     }
 }
 
@@ -119,8 +110,6 @@ impl PatchRequisitionSkillDto {
 pub struct RequisitionSkillResponseDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub requisition_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -183,9 +172,9 @@ impl RequisitionSkillListResponseDto {
 #[serde(rename_all = "camelCase")]
 pub struct RequisitionSkillSummaryDto {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub requisition_id: Uuid,
     pub skill_id: Uuid,
+    pub required_proficiency: ProficiencyLevel,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -197,7 +186,6 @@ impl From<RequisitionSkill> for RequisitionSkillResponseDto {
     fn from(entity: RequisitionSkill) -> Self {
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             requisition_id: entity.requisition_id,
             skill_id: entity.skill_id,
             required_proficiency: entity.required_proficiency,
@@ -211,9 +199,9 @@ impl From<RequisitionSkill> for RequisitionSkillSummaryDto {
         let created_at = backbone_core::PersistentEntity::created_at(&entity);
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             requisition_id: entity.requisition_id,
             skill_id: entity.skill_id,
+            required_proficiency: entity.required_proficiency,
             created_at,
         }
     }
@@ -223,7 +211,6 @@ impl From<CreateRequisitionSkillDto> for RequisitionSkill {
     fn from(dto: CreateRequisitionSkillDto) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id: dto.company_id,
             requisition_id: dto.requisition_id,
             skill_id: dto.skill_id,
             required_proficiency: dto.required_proficiency,
@@ -236,7 +223,6 @@ impl From<&RequisitionSkill> for RequisitionSkillResponseDto {
     fn from(entity: &RequisitionSkill) -> Self {
         Self {
             id: entity.id.clone(),
-            company_id: entity.company_id.clone(),
             requisition_id: entity.requisition_id.clone(),
             skill_id: entity.skill_id.clone(),
             required_proficiency: entity.required_proficiency.clone(),
@@ -253,7 +239,6 @@ impl backbone_core::FromCreateDto<CreateRequisitionSkillDto> for RequisitionSkil
 
 impl backbone_core::ApplyUpdateDto<UpdateRequisitionSkillDto> for RequisitionSkill {
     fn apply_update(mut self, dto: UpdateRequisitionSkillDto) -> backbone_core::ServiceResult<Self> {
-        self.company_id = dto.company_id;
         self.requisition_id = dto.requisition_id;
         self.skill_id = dto.skill_id;
         self.required_proficiency = dto.required_proficiency;
@@ -269,4 +254,3 @@ impl backbone_core::ApplyUpdateDto<UpdateRequisitionSkillDto> for RequisitionSki
 // Add custom DTOs specific to RequisitionSkill here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
-

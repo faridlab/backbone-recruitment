@@ -24,7 +24,6 @@ impl TestDataGenerator for CandidateTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": Uuid::new_v4().to_string(),
-            "company_id": Uuid::new_v4().to_string(),
             "first_name": format!("Test {}", Uuid::new_v4().to_string().split('-').next().unwrap()),
             "last_name": null,
             "email": null,
@@ -40,7 +39,6 @@ impl TestDataGenerator for CandidateTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": id,
-            "company_id": Uuid::new_v4().to_string(),
             "first_name": format!("Test {}", Uuid::new_v4().to_string().split('-').next().unwrap()),
             "last_name": null,
             "email": null,

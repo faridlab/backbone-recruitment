@@ -6,7 +6,6 @@
 
 -- INSERT INTO recruitment.recruitment_stages (
 --     id,
---     company_id,
 --     name,
 --     sequence,
 --     is_hired,

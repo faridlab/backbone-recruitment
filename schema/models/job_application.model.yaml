@@ -4,7 +4,7 @@
 # Description: A candidate's application against a requisition — the central
 #              funnel object. The lifecycle is STAGE-DRIVEN: stage_id points at
 #              a configurable RecruitmentStage (lifecycle: stage_ref) and there
-#              is deliberately NO stored status enum — the pipeline is company
+#              is deliberately NO stored status enum — the pipeline is tenant
 #              config, so any hardcoded state list would fight it. Where an
 #              application "is" derives from the stage flags plus the refusal
 #              marks: hired = its stage is_hired, refused = refused_at set,
@@ -27,11 +27,6 @@ models:
         type: uuid
         attributes: ["@id", "@default(uuid)"]
         description: "Unique application id"
-
-      company_id:
-        type: uuid
-        attributes: ["@required", "@exclude_from_foreign_key_check"]
-        description: "Owning company # logical FK organization.Company.id"
 
       candidate_id:
         type: uuid
@@ -82,8 +77,6 @@ models:
         description: "Audit metadata"
 
     indexes:
-      - type: index
-        fields: [company_id, stage_id]
       - type: index
         fields: [candidate_id]
       - type: index

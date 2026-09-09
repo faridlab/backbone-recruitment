@@ -14,11 +14,13 @@
 //!   decline / withdraw), interviews (schedule / complete / cancel),
 //!   requisition skills (set / list).
 //!
-//! Every write handler extracts the caller's company from the
-//! [`CompanyContext`] the `company_auth` middleware inserts — the tenant
-//! comes from the signed token, never the request body — and passes it down
-//! so each verb runs inside a company-scoped transaction (row-level
-//! security does the actual fencing).
+//! Every write handler extracts the [`OrgContext`] the composing service's
+//! `org_auth` middleware inserts — the org identity comes from the verified
+//! request, never the body. Extraction IS the gate: a request with no
+//! verified org context never reaches a verb (standing 401). The verbs
+//! themselves relay the ambient request scope onto their transactions, so a
+//! deployment whose tenancy decorator fenced the tables does the actual
+//! scoping at the row level.
 
 use std::sync::Arc;
 
@@ -29,7 +31,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use backbone_auth::company::CompanyContext;
+use backbone_auth::org::OrgContext;
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -74,12 +76,11 @@ struct CreateApplicationBody {
 
 async fn create_application(
     State(svc): State<Arc<JobApplicationWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Json(b): Json<CreateApplicationBody>,
 ) -> axum::response::Response {
     match svc
         .create_application(NewJobApplication {
-            company_id: tenant.company_id,
             candidate_id: b.candidate_id,
             requisition_id: b.requisition_id,
         })
@@ -97,11 +98,11 @@ struct MoveStageBody {
 
 async fn move_stage(
     State(svc): State<Arc<JobApplicationWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(application_id): Path<Uuid>,
     Json(b): Json<MoveStageBody>,
 ) -> axum::response::Response {
-    match svc.move_stage(tenant.company_id, application_id, b.to_stage_id).await {
+    match svc.move_stage(application_id, b.to_stage_id).await {
         Ok(moved) => (StatusCode::OK, Json(OkResponse { ok: moved })).into_response(),
         Err(e) => err_response(e.code(), e.http_status(), e.to_string()),
     }
@@ -115,11 +116,11 @@ struct RefuseBody {
 
 async fn refuse_application(
     State(svc): State<Arc<JobApplicationWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(application_id): Path<Uuid>,
     Json(b): Json<RefuseBody>,
 ) -> axum::response::Response {
-    match svc.refuse(tenant.company_id, application_id, b.reason).await {
+    match svc.refuse(application_id, b.reason).await {
         Ok(()) => (StatusCode::OK, Json(OkResponse { ok: true })).into_response(),
         Err(e) => err_response(e.code(), e.http_status(), e.to_string()),
     }
@@ -127,10 +128,10 @@ async fn refuse_application(
 
 async fn application_pipeline(
     State(svc): State<Arc<JobApplicationWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(application_id): Path<Uuid>,
 ) -> axum::response::Response {
-    match svc.pipeline(tenant.company_id, application_id).await {
+    match svc.pipeline(application_id).await {
         Ok(Some(p)) => (StatusCode::OK, Json(p)).into_response(),
         Ok(None) => err_response(
             ApplicationError::NotFound(application_id).code(),
@@ -156,7 +157,7 @@ struct CreateOfferBody {
 
 async fn create_offer(
     State(svc): State<Arc<JobOfferWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Json(b): Json<CreateOfferBody>,
 ) -> axum::response::Response {
     let application_id = match b.application_id {
@@ -167,7 +168,6 @@ async fn create_offer(
     };
     match svc
         .create_draft(NewJobOffer {
-            company_id: tenant.company_id,
             application_id,
             proposed_salary: b.proposed_salary,
             employment_type: b.employment_type,
@@ -190,14 +190,13 @@ struct ExtendBody {
 
 async fn extend_offer(
     State(svc): State<Arc<JobOfferWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(offer_id): Path<Uuid>,
     body: Option<Json<ExtendBody>>,
 ) -> axum::response::Response {
     let b = body.map(|Json(b)| b).unwrap_or_default();
     match svc
         .extend(
-            tenant.company_id,
             offer_id,
             ExtendOptions { start_date: b.start_date, company_name: b.company_name },
         )
@@ -210,10 +209,10 @@ async fn extend_offer(
 
 async fn hire_offer(
     State(svc): State<Arc<JobOfferWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(offer_id): Path<Uuid>,
 ) -> axum::response::Response {
-    match svc.hire(tenant.company_id, offer_id).await {
+    match svc.hire(offer_id).await {
         Ok(Some(event_id)) => (StatusCode::OK, Json(IdResponse { id: event_id })).into_response(),
         // Idempotent no-op: the offer was already accepted; no second event.
         Ok(None) => (StatusCode::OK, Json(OkResponse { ok: false })).into_response(),
@@ -223,10 +222,10 @@ async fn hire_offer(
 
 async fn decline_offer(
     State(svc): State<Arc<JobOfferWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(offer_id): Path<Uuid>,
 ) -> axum::response::Response {
-    match svc.decline(tenant.company_id, offer_id).await {
+    match svc.decline(offer_id).await {
         Ok(()) => (StatusCode::OK, Json(OkResponse { ok: true })).into_response(),
         Err(e) => err_response(e.code(), e.http_status(), e.to_string()),
     }
@@ -234,10 +233,10 @@ async fn decline_offer(
 
 async fn withdraw_offer(
     State(svc): State<Arc<JobOfferWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(offer_id): Path<Uuid>,
 ) -> axum::response::Response {
-    match svc.withdraw(tenant.company_id, offer_id).await {
+    match svc.withdraw(offer_id).await {
         Ok(()) => (StatusCode::OK, Json(OkResponse { ok: true })).into_response(),
         Err(e) => err_response(e.code(), e.http_status(), e.to_string()),
     }
@@ -262,12 +261,11 @@ struct ScheduleInterviewBody {
 
 async fn schedule_interview(
     State(svc): State<Arc<InterviewWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Json(b): Json<ScheduleInterviewBody>,
 ) -> axum::response::Response {
     match svc
         .schedule(NewInterview {
-            company_id: tenant.company_id,
             application_id: b.application_id,
             interviewer_id: b.interviewer_id,
             scheduled_at: b.scheduled_at,
@@ -292,12 +290,12 @@ struct CompleteInterviewBody {
 
 async fn complete_interview(
     State(svc): State<Arc<InterviewWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(interview_id): Path<Uuid>,
     body: Option<Json<CompleteInterviewBody>>,
 ) -> axum::response::Response {
     let b = body.map(|Json(b)| b).unwrap_or_default();
-    match svc.complete(tenant.company_id, interview_id, b.rating, b.feedback).await {
+    match svc.complete(interview_id, b.rating, b.feedback).await {
         Ok(()) => (StatusCode::OK, Json(OkResponse { ok: true })).into_response(),
         Err(e) => err_response(e.code(), e.http_status(), e.to_string()),
     }
@@ -305,10 +303,10 @@ async fn complete_interview(
 
 async fn cancel_interview(
     State(svc): State<Arc<InterviewWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(interview_id): Path<Uuid>,
 ) -> axum::response::Response {
-    match svc.cancel(tenant.company_id, interview_id).await {
+    match svc.cancel(interview_id).await {
         Ok(()) => (StatusCode::OK, Json(OkResponse { ok: true })).into_response(),
         Err(e) => err_response(e.code(), e.http_status(), e.to_string()),
     }
@@ -329,7 +327,7 @@ struct SkillLine {
 
 async fn set_requisition_skills(
     State(svc): State<Arc<RequisitionSkillWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(requisition_id): Path<Uuid>,
     Json(b): Json<SetSkillsBody>,
 ) -> axum::response::Response {
@@ -341,7 +339,7 @@ async fn set_requisition_skills(
             required_proficiency: s.required_proficiency,
         })
         .collect();
-    match svc.set_skills(tenant.company_id, requisition_id, skills).await {
+    match svc.set_skills(requisition_id, skills).await {
         Ok(()) => (StatusCode::OK, Json(OkResponse { ok: true })).into_response(),
         Err(e) => err_response(e.code(), e.http_status(), e.to_string()),
     }
@@ -356,10 +354,10 @@ struct SkillLineOut {
 
 async fn list_requisition_skills(
     State(svc): State<Arc<RequisitionSkillWriteService>>,
-    tenant: CompanyContext,
+    _org: OrgContext,
     Path(requisition_id): Path<Uuid>,
 ) -> axum::response::Response {
-    match svc.list_skills(tenant.company_id, requisition_id).await {
+    match svc.list_skills(requisition_id).await {
         Ok(rows) => (
             StatusCode::OK,
             Json(rows

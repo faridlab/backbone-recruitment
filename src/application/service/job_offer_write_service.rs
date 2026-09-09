@@ -1,11 +1,16 @@
 //! Offer write-service (hand-authored, user-owned): extend / hire / decline /
 //! withdraw — the offer half of the recruitment → employee handoff.
 //!
-//! Every verb takes the caller's `company` explicitly and binds it onto the
-//! transaction before any statement runs, so the whole path is correct under
-//! the strict company fence (row-level security): a scoped non-owner session
-//! cannot read or write rows outside its company, and a caller that forgets
-//! the scope fails closed (no rows) instead of leaking.
+//! Every verb that opens its own transaction relays the ambient request scope
+//! (when one is bound) onto that transaction before any statement runs, so a
+//! deployment whose composing service installed the tenancy decorator's
+//! row-level fence sees only the caller's org-unit rows. Unfenced deployments
+//! have no ambient scope and the relay is skipped entirely — the module stays
+//! posture-agnostic. The one exception that still NEEDS a tenant: the
+//! durable `recruitment.hired` outbox record is a still-company-keyed
+//! framework surface, so [`JobOfferWriteService::hire`] takes the owning
+//! tenant from the ambient org scope's legacy company id and fails closed
+//! when the request carries none — a composition fault, not a caller error.
 //!
 //! [`JobOfferWriteService::hire`] is the producer side of the hire handoff:
 //! in a SINGLE database transaction it (1) marks the `JobOffer` accepted
@@ -34,7 +39,7 @@
 
 use std::sync::Arc;
 
-use backbone_orm::company_scope;
+use backbone_orm::org_scope;
 use backbone_outbox::{outbox, OutboxRecord};
 use chrono::{NaiveDate, Utc};
 use rust_decimal::Decimal;
@@ -51,11 +56,11 @@ pub const HIRED_EVENT_TYPE: &str = "recruitment.hired";
 /// Errors from the offer write-service.
 #[derive(Debug, thiserror::Error)]
 pub enum OfferError {
-    /// No `JobOffer` exists for the given id in the caller's company.
+    /// No `JobOffer` exists for the given id visible to the caller.
     #[error("offer {0} not found")]
     NotFound(Uuid),
-    /// `create_draft` on an application that does not exist in the company.
-    #[error("application {0} not found in company")]
+    /// `create_draft` on an application that does not exist.
+    #[error("application {0} not found")]
     ApplicationNotFound(Uuid),
     /// The offer exists but is not in a state that permits this verb.
     #[error("offer {offer_id} is not extensible (status: {status})")]
@@ -76,6 +81,13 @@ pub enum OfferError {
     /// The offer IS extended; only the letter failed — retry just the send.
     #[error("letter delivery failed (offer is extended): {0}")]
     LetterDelivery(String),
+    /// The hire handoff must name the owning tenant for the still-company-keyed
+    /// outbox record, but the request carries no org scope whose legacy company
+    /// could name it. This is a composition fault — the service must be mounted
+    /// under a scope-resolving auth middleware — not a caller error, so it
+    /// fails loud instead of guessing.
+    #[error("no org scope bound: {0}")]
+    OrgScopeRequired(&'static str),
     /// A database failure.
     #[error("database error: {0}")]
     Db(#[from] sqlx::Error),
@@ -96,6 +108,7 @@ impl OfferError {
             OfferError::RequisitionNotOpen(_) => "requisition_not_open",
             OfferError::LetterSeamUnwired => "letter_seam_unwired",
             OfferError::LetterDelivery(_) => "letter_delivery_failed",
+            OfferError::OrgScopeRequired(_) => "org_scope_required",
             OfferError::Db(_) => "internal_error",
             OfferError::Outbox(_) => "outbox_error",
         }
@@ -109,6 +122,8 @@ impl OfferError {
             | OfferError::RequisitionNotOpen(_) => 422,
             OfferError::LetterSeamUnwired => 422,
             OfferError::LetterDelivery(_) => 502,
+            // A composition fault, not a caller error.
+            OfferError::OrgScopeRequired(_) => 500,
             OfferError::Db(_) | OfferError::Outbox(_) => 500,
         }
     }
@@ -117,7 +132,6 @@ impl OfferError {
 /// Input for `create_draft` — the only way an offer row comes to exist.
 #[derive(Debug, Clone)]
 pub struct NewJobOffer {
-    pub company_id: Uuid,
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
     pub employment_type: Option<String>,
@@ -162,16 +176,17 @@ impl JobOfferWriteService {
     /// offers precisely so no path can set `status` directly and sidestep
     /// [`JobOfferWriteService::hire`]'s atomic accept+emit.
     pub async fn create_draft(&self, input: NewJobOffer) -> Result<Uuid, OfferError> {
-        let company = input.company_id;
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
 
         let row = sqlx::query(
-            "SELECT refused_at FROM recruitment.job_applications \
-             WHERE id = $1 AND company_id = $2",
+            "SELECT refused_at FROM recruitment.job_applications WHERE id = $1",
         )
         .bind(input.application_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
         match row {
@@ -189,14 +204,13 @@ impl JobOfferWriteService {
         let id = Uuid::new_v4();
         sqlx::query(
             r#"INSERT INTO recruitment.job_offers
-                   (id, company_id, application_id, proposed_salary, employment_type,
+                   (id, application_id, proposed_salary, employment_type,
                     letter_template_id, status, metadata)
-               VALUES ($1, $2, $3, $4, $5, $6, 'draft',
+               VALUES ($1, $2, $3, $4, $5, 'draft',
                        '{"created_at":null,"updated_at":null,"deleted_at":null,
                          "created_by":null,"updated_by":null,"deleted_by":null}'::jsonb)"#,
         )
         .bind(id)
-        .bind(company)
         .bind(input.application_id)
         .bind(input.proposed_salary)
         .bind(&input.employment_type)
@@ -212,14 +226,13 @@ impl JobOfferWriteService {
     /// (`Ok(false)`). Guards: the linked application is not refused and its
     /// requisition is open. When the offer references a letter template the
     /// letter is rendered and sent through the [`OfferLetterSink`].
-    pub async fn extend(
-        &self,
-        company: Uuid,
-        offer_id: Uuid,
-        opts: ExtendOptions,
-    ) -> Result<bool, OfferError> {
+    pub async fn extend(&self, offer_id: Uuid, opts: ExtendOptions) -> Result<bool, OfferError> {
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
 
         // `status::text` — the column is a Postgres enum (`offer_status`);
         // sqlx will not decode an enum column straight to a Rust `String`,
@@ -235,11 +248,10 @@ impl JobOfferWriteService {
                  JOIN recruitment.job_applications a ON a.id = o.application_id
                  JOIN recruitment.candidates c      ON c.id = a.candidate_id
                  JOIN recruitment.job_requisitions r ON r.id = a.requisition_id
-                WHERE o.id = $1 AND o.company_id = $2
+                WHERE o.id = $1
                 FOR UPDATE OF o"#,
         )
         .bind(offer_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
 
@@ -280,11 +292,9 @@ impl JobOfferWriteService {
                 return Err(OfferError::LetterSeamUnwired);
             }
             let template_row = sqlx::query(
-                "SELECT subject, body FROM recruitment.offer_letter_templates \
-                 WHERE id = $1 AND company_id = $2",
+                "SELECT subject, body FROM recruitment.offer_letter_templates WHERE id = $1",
             )
             .bind(tid)
-            .bind(company)
             .fetch_one(&mut *tx)
             .await?;
             let subject: String = template_row.try_get("subject")?;
@@ -351,21 +361,40 @@ impl JobOfferWriteService {
     /// an [`OfferError::NotExtensible`]. The linked application must sit in a
     /// stage flagged `is_hired` ([`OfferError::ApplicationNotHired`] otherwise)
     /// — the pipeline, not the offer, decides who is hired.
-    pub async fn hire(&self, company: Uuid, offer_id: Uuid) -> Result<Option<Uuid>, OfferError> {
+    ///
+    /// The staged record must name the owning tenant (the outbox is a
+    /// still-company-keyed framework surface), so the tenant comes from the
+    /// ambient org scope's legacy company id; no bound scope is
+    /// [`OfferError::OrgScopeRequired`].
+    pub async fn hire(&self, offer_id: Uuid) -> Result<Option<Uuid>, OfferError> {
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
+
+        // The durable event path must name the owning tenant: the outbox is a
+        // still-company-keyed surface (ADR-0011). Take it from the ambient org
+        // scope the composing service resolved — never guess — and fail closed
+        // when absent.
+        let scope = org_scope::current_org_scope();
+        let owning_company = scope.as_ref().and_then(|s| s.legacy_company_id()).ok_or(
+            OfferError::OrgScopeRequired(
+                "hiring an offer stages an outbox event that must carry the owning tenant",
+            ),
+        )?;
 
         // Lock the offer row for the duration of the state change + the outbox
         // stage, so a concurrent hire cannot race a second accept.
         let row = sqlx::query(
-            r#"SELECT o.company_id, o.application_id, o.proposed_salary, o.employment_type,
+            r#"SELECT o.application_id, o.proposed_salary, o.employment_type,
                       o.status::text AS status
                  FROM recruitment.job_offers o
-                WHERE o.id = $1 AND o.company_id = $2
+                WHERE o.id = $1
                 FOR UPDATE OF o"#,
         )
         .bind(offer_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
 
@@ -440,7 +469,7 @@ impl JobOfferWriteService {
             // id) and keys the employee_number off it, so this payload is
             // round-trip safe across a replay.
             "offer_id": offer_id,
-            "company_id": company,
+            "company_id": owning_company,
             "first_name": first_name,
             "last_name": last_name,
             "email": email,
@@ -467,7 +496,7 @@ impl JobOfferWriteService {
             HIRED_EVENT_TYPE,
             "JobOffer",
             offer_id.to_string(),
-            company,
+            owning_company,
             payload,
             Utc::now(),
         )
@@ -479,32 +508,33 @@ impl JobOfferWriteService {
     }
 
     /// Extended → declined (the candidate turned it down).
-    pub async fn decline(&self, company: Uuid, offer_id: Uuid) -> Result<(), OfferError> {
-        self.cas(company, offer_id, "declined", &["extended"]).await
+    pub async fn decline(&self, offer_id: Uuid) -> Result<(), OfferError> {
+        self.cas(offer_id, "declined", &["extended"]).await
     }
 
-    /// Draft/extended → withdrawn (the company pulled it back).
-    pub async fn withdraw(&self, company: Uuid, offer_id: Uuid) -> Result<(), OfferError> {
-        self.cas(company, offer_id, "withdrawn", &["draft", "extended"]).await
+    /// Draft/extended → withdrawn (the hiring organization pulled it back).
+    pub async fn withdraw(&self, offer_id: Uuid) -> Result<(), OfferError> {
+        self.cas(offer_id, "withdrawn", &["draft", "extended"]).await
     }
 
     /// Shared compare-and-set transition: only `from` states may move to `to`.
     async fn cas(
         &self,
-        company: Uuid,
         offer_id: Uuid,
         to: &'static str,
         from: &[&'static str],
     ) -> Result<(), OfferError> {
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
 
         let status: Option<String> = sqlx::query_scalar(
-            "SELECT status::text FROM recruitment.job_offers WHERE id = $1 AND company_id = $2 \
-             FOR UPDATE",
+            "SELECT status::text FROM recruitment.job_offers WHERE id = $1 FOR UPDATE",
         )
         .bind(offer_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
 

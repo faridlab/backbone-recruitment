@@ -24,7 +24,6 @@ impl TestDataGenerator for InterviewTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": Uuid::new_v4().to_string(),
-            "company_id": Uuid::new_v4().to_string(),
             "application_id": Uuid::new_v4().to_string(),
             "interviewer_id": Uuid::new_v4().to_string(),
             "scheduled_at": now,
@@ -41,7 +40,6 @@ impl TestDataGenerator for InterviewTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": id,
-            "company_id": Uuid::new_v4().to_string(),
             "application_id": Uuid::new_v4().to_string(),
             "interviewer_id": Uuid::new_v4().to_string(),
             "scheduled_at": now,

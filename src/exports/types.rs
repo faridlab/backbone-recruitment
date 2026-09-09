@@ -49,7 +49,6 @@ impl From<CandidateId> for Uuid {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CandidateDto {
     pub id: CandidateId,
-    pub company_id: Uuid,
     pub first_name: String,
     pub last_name: Option<String>,
     pub email: Option<String>,
@@ -113,7 +112,6 @@ impl From<InterviewId> for Uuid {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InterviewDto {
     pub id: InterviewId,
-    pub company_id: Uuid,
     pub application_id: Uuid,
     pub interviewer_id: Uuid,
     pub scheduled_at: DateTime<Utc>,
@@ -176,7 +174,6 @@ impl From<JobApplicationId> for Uuid {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JobApplicationDto {
     pub id: JobApplicationId,
-    pub company_id: Uuid,
     pub candidate_id: Uuid,
     pub requisition_id: Uuid,
     pub stage_id: Uuid,
@@ -239,7 +236,6 @@ impl From<JobOfferId> for Uuid {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JobOfferDto {
     pub id: JobOfferId,
-    pub company_id: Uuid,
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
     pub employment_type: Option<String>,
@@ -301,7 +297,6 @@ impl From<JobRequisitionId> for Uuid {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JobRequisitionDto {
     pub id: JobRequisitionId,
-    pub company_id: Uuid,
     pub department_id: Option<Uuid>,
     pub position_id: Option<Uuid>,
     pub title: String,
@@ -367,7 +362,6 @@ impl From<OfferLetterTemplateId> for Uuid {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OfferLetterTemplateDto {
     pub id: OfferLetterTemplateId,
-    pub company_id: Uuid,
     pub name: String,
     pub subject: String,
     pub body: String,
@@ -425,7 +419,6 @@ impl From<RecruitmentStageId> for Uuid {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecruitmentStageDto {
     pub id: RecruitmentStageId,
-    pub company_id: Uuid,
     pub name: String,
     pub sequence: i32,
     pub is_hired: bool,
@@ -485,7 +478,6 @@ impl From<RequisitionSkillId> for Uuid {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RequisitionSkillDto {
     pub id: RequisitionSkillId,
-    pub company_id: Uuid,
     pub requisition_id: Uuid,
     pub skill_id: Uuid,
     pub required_proficiency: ProficiencyLevel,

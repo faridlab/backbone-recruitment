@@ -50,7 +50,6 @@ impl std::ops::Deref for CandidateId {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Candidate {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub first_name: String,
     pub last_name: Option<String>,
     pub email: Option<String>,
@@ -70,10 +69,9 @@ impl Candidate {
     }
 
     /// Create a new Candidate with required fields
-    pub fn new(company_id: Uuid, first_name: String) -> Self {
+    pub fn new(first_name: String) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id,
             first_name,
             last_name: None,
             email: None,
@@ -184,9 +182,6 @@ impl Candidate {
     pub fn apply_patch(&mut self, fields: std::collections::HashMap<String, serde_json::Value>) {
         for (key, value) in fields {
             match key.as_str() {
-                "company_id" => {
-                    if let Ok(v) = serde_json::from_value(value) { self.company_id = v; }
-                }
                 "first_name" => {
                     if let Ok(v) = serde_json::from_value(value) { self.first_name = v; }
                 }
@@ -262,15 +257,11 @@ impl backbone_orm::EntityRepoMeta for Candidate {
     fn column_types() -> std::collections::HashMap<String, String> {
         let mut m = std::collections::HashMap::new();
         m.insert("id".to_string(), "uuid".to_string());
-        m.insert("company_id".to_string(), "uuid".to_string());
         m.insert("source".to_string(), "candidate_source".to_string());
         m
     }
     fn search_fields() -> &'static [&'static str] {
         &["first_name"]
-    }
-    fn company_field() -> Option<&'static str> {
-        Some("company_id")
     }
 }
 
@@ -280,7 +271,6 @@ impl backbone_orm::EntityRepoMeta for Candidate {
 /// System fields (id, metadata, timestamps) are auto-initialized.
 #[derive(Debug, Clone, Default)]
 pub struct CandidateBuilder {
-    company_id: Option<Uuid>,
     first_name: Option<String>,
     last_name: Option<String>,
     email: Option<String>,
@@ -291,12 +281,6 @@ pub struct CandidateBuilder {
 }
 
 impl CandidateBuilder {
-    /// Set the company_id field (required)
-    pub fn company_id(mut self, value: Uuid) -> Self {
-        self.company_id = Some(value);
-        self
-    }
-
     /// Set the first_name field (required)
     pub fn first_name(mut self, value: String) -> Self {
         self.first_name = Some(value);
@@ -343,12 +327,10 @@ impl CandidateBuilder {
     ///
     /// Returns Err if any required field without a default is missing.
     pub fn build(self) -> Result<Candidate, String> {
-        let company_id = self.company_id.ok_or_else(|| "company_id is required".to_string())?;
         let first_name = self.first_name.ok_or_else(|| "first_name is required".to_string())?;
 
         Ok(Candidate {
             id: Uuid::new_v4(),
-            company_id,
             first_name,
             last_name: self.last_name,
             email: self.email,

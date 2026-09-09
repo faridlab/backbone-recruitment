@@ -33,9 +33,6 @@ use crate::domain::entity::AuditMetadata;
 #[serde(rename_all = "camelCase")]
 pub struct CreateJobApplicationDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "candidate_id")]
     pub candidate_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -72,9 +69,6 @@ pub struct CreateJobApplicationDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateJobApplicationDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "candidate_id")]
     pub candidate_id: Uuid,
@@ -113,9 +107,6 @@ pub struct UpdateJobApplicationDto {
 #[serde(rename_all = "camelCase")]
 pub struct PatchJobApplicationDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(skip_serializing_if = "Option::is_none", alias = "company_id")]
-    pub company_id: Option<Uuid>,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "candidate_id")]
     pub candidate_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -142,7 +133,7 @@ pub struct PatchJobApplicationDto {
 impl PatchJobApplicationDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.candidate_id.is_some() || self.requisition_id.is_some() || self.stage_id.is_some() || self.last_stage_id.is_some() || self.stage_updated_at.is_some() || self.date_closed.is_some() || self.refuse_reason.is_some() || self.refused_at.is_some() || self.applied_at.is_some()
+        self.candidate_id.is_some() || self.requisition_id.is_some() || self.stage_id.is_some() || self.last_stage_id.is_some() || self.stage_updated_at.is_some() || self.date_closed.is_some() || self.refuse_reason.is_some() || self.refused_at.is_some() || self.applied_at.is_some()
     }
 }
 
@@ -160,8 +151,6 @@ impl PatchJobApplicationDto {
 pub struct JobApplicationResponseDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub candidate_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -232,9 +221,9 @@ impl JobApplicationListResponseDto {
 #[serde(rename_all = "camelCase")]
 pub struct JobApplicationSummaryDto {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub candidate_id: Uuid,
     pub requisition_id: Uuid,
+    pub stage_id: Uuid,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -246,7 +235,6 @@ impl From<JobApplication> for JobApplicationResponseDto {
     fn from(entity: JobApplication) -> Self {
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             candidate_id: entity.candidate_id,
             requisition_id: entity.requisition_id,
             stage_id: entity.stage_id,
@@ -266,9 +254,9 @@ impl From<JobApplication> for JobApplicationSummaryDto {
         let created_at = backbone_core::PersistentEntity::created_at(&entity);
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             candidate_id: entity.candidate_id,
             requisition_id: entity.requisition_id,
+            stage_id: entity.stage_id,
             created_at,
         }
     }
@@ -278,7 +266,6 @@ impl From<CreateJobApplicationDto> for JobApplication {
     fn from(dto: CreateJobApplicationDto) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id: dto.company_id,
             candidate_id: dto.candidate_id,
             requisition_id: dto.requisition_id,
             stage_id: dto.stage_id,
@@ -297,7 +284,6 @@ impl From<&JobApplication> for JobApplicationResponseDto {
     fn from(entity: &JobApplication) -> Self {
         Self {
             id: entity.id.clone(),
-            company_id: entity.company_id.clone(),
             candidate_id: entity.candidate_id.clone(),
             requisition_id: entity.requisition_id.clone(),
             stage_id: entity.stage_id.clone(),
@@ -320,7 +306,6 @@ impl backbone_core::FromCreateDto<CreateJobApplicationDto> for JobApplication {
 
 impl backbone_core::ApplyUpdateDto<UpdateJobApplicationDto> for JobApplication {
     fn apply_update(mut self, dto: UpdateJobApplicationDto) -> backbone_core::ServiceResult<Self> {
-        self.company_id = dto.company_id;
         self.candidate_id = dto.candidate_id;
         self.requisition_id = dto.requisition_id;
         self.stage_id = dto.stage_id;
@@ -342,4 +327,3 @@ impl backbone_core::ApplyUpdateDto<UpdateJobApplicationDto> for JobApplication {
 // Add custom DTOs specific to JobApplication here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
-

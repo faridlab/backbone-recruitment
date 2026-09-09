@@ -24,7 +24,6 @@ impl TestDataGenerator for RequisitionSkillTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": Uuid::new_v4().to_string(),
-            "company_id": Uuid::new_v4().to_string(),
             "requisition_id": Uuid::new_v4().to_string(),
             "skill_id": Uuid::new_v4().to_string(),
             "required_proficiency": "novice",
@@ -36,7 +35,6 @@ impl TestDataGenerator for RequisitionSkillTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": id,
-            "company_id": Uuid::new_v4().to_string(),
             "requisition_id": Uuid::new_v4().to_string(),
             "skill_id": Uuid::new_v4().to_string(),
             "required_proficiency": "novice",

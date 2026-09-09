@@ -185,4 +185,3 @@ pub fn create_protected_requisition_skill_routes<A: AuthMiddleware + Send + Sync
             }
         }))
 }
-

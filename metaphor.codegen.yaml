@@ -29,18 +29,22 @@ user_owned:
   - "src/application/service/letter_port.rs"
   # {{placeholder}} renderer for offer-letter bodies (mail has no template engine).
   - "src/application/service/offer_letter_render.rs"
-  # Company-authenticated HTTP surface (verbs + guarded CRUD).
+  # Org-authenticated HTTP surface (verbs + guarded CRUD).
   - "src/presentation/http/guarded_routes.rs"
 
   # Hand-written migrations that reshape published tables (append-only; the
   # generator only emits create-table files for new entities).
   - "migrations/20260817120000_stage_ref_reshape.up.sql"
   - "migrations/20260817120000_stage_ref_reshape.down.sql"
+  # Tenancy strip: removes the company-fence artifacts (company-leading indexes,
+  # <table>_company_isolation RLS policies, the company_id column) behind a
+  # decorator-first ordering guard.
+  - "migrations/20260909120000_strip_tenancy.up.sql"
+  - "migrations/20260909120000_strip_tenancy.down.sql"
 
   # Behavior tests (the golden cases / oracle) + BDD features.
   - "tests/features/**"
   - "tests/hire_flow.rs"
-  - "tests/integrity_probes.rs"
 
   # Hand-authored module documentation.
   - "docs/**"

@@ -7,7 +7,8 @@
 #              must not grow a second skill table that would drift out of sync
 #              with the one employees are assessed against. The cross-module
 #              reference is a logical FK (no constraint across schemas); the
-#              write path validates skill ids in-company and fails closed on
+#              write path validates skill ids against the caller's tenant
+#              (sourced from the ambient org scope) and fails closed on
 #              unknown ones.
 # =============================================================================
 
@@ -21,11 +22,6 @@ models:
         type: uuid
         attributes: ["@id", "@default(uuid)"]
         description: "Unique requirement id"
-
-      company_id:
-        type: uuid
-        attributes: ["@required", "@exclude_from_foreign_key_check"]
-        description: "Owning company # logical FK organization.Company.id"
 
       requisition_id:
         type: uuid
@@ -48,8 +44,6 @@ models:
         description: "Audit metadata"
 
     indexes:
-      - type: unique
-        fields: [company_id, requisition_id, skill_id]
       - type: index
         fields: [skill_id]
 

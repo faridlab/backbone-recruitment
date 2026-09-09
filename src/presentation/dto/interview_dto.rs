@@ -34,9 +34,6 @@ use crate::domain::entity::InterviewStatus;
 #[serde(rename_all = "camelCase")]
 pub struct CreateInterviewDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "application_id")]
     pub application_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -69,9 +66,6 @@ pub struct CreateInterviewDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateInterviewDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "application_id")]
     pub application_id: Uuid,
@@ -106,9 +100,6 @@ pub struct UpdateInterviewDto {
 #[serde(rename_all = "camelCase")]
 pub struct PatchInterviewDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(skip_serializing_if = "Option::is_none", alias = "company_id")]
-    pub company_id: Option<Uuid>,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "application_id")]
     pub application_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -132,7 +123,7 @@ pub struct PatchInterviewDto {
 impl PatchInterviewDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.application_id.is_some() || self.interviewer_id.is_some() || self.scheduled_at.is_some() || self.round.is_some() || self.interview_format.is_some() || self.rating.is_some() || self.feedback.is_some() || self.status.is_some()
+        self.application_id.is_some() || self.interviewer_id.is_some() || self.scheduled_at.is_some() || self.round.is_some() || self.interview_format.is_some() || self.rating.is_some() || self.feedback.is_some() || self.status.is_some()
     }
 }
 
@@ -150,8 +141,6 @@ impl PatchInterviewDto {
 pub struct InterviewResponseDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub application_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -220,9 +209,9 @@ impl InterviewListResponseDto {
 #[serde(rename_all = "camelCase")]
 pub struct InterviewSummaryDto {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub application_id: Uuid,
     pub interviewer_id: Uuid,
+    pub scheduled_at: DateTime<Utc>,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -234,7 +223,6 @@ impl From<Interview> for InterviewResponseDto {
     fn from(entity: Interview) -> Self {
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             application_id: entity.application_id,
             interviewer_id: entity.interviewer_id,
             scheduled_at: entity.scheduled_at,
@@ -253,9 +241,9 @@ impl From<Interview> for InterviewSummaryDto {
         let created_at = backbone_core::PersistentEntity::created_at(&entity);
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             application_id: entity.application_id,
             interviewer_id: entity.interviewer_id,
+            scheduled_at: entity.scheduled_at,
             created_at,
         }
     }
@@ -265,7 +253,6 @@ impl From<CreateInterviewDto> for Interview {
     fn from(dto: CreateInterviewDto) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id: dto.company_id,
             application_id: dto.application_id,
             interviewer_id: dto.interviewer_id,
             scheduled_at: dto.scheduled_at,
@@ -283,7 +270,6 @@ impl From<&Interview> for InterviewResponseDto {
     fn from(entity: &Interview) -> Self {
         Self {
             id: entity.id.clone(),
-            company_id: entity.company_id.clone(),
             application_id: entity.application_id.clone(),
             interviewer_id: entity.interviewer_id.clone(),
             scheduled_at: entity.scheduled_at.clone(),
@@ -305,7 +291,6 @@ impl backbone_core::FromCreateDto<CreateInterviewDto> for Interview {
 
 impl backbone_core::ApplyUpdateDto<UpdateInterviewDto> for Interview {
     fn apply_update(mut self, dto: UpdateInterviewDto) -> backbone_core::ServiceResult<Self> {
-        self.company_id = dto.company_id;
         self.application_id = dto.application_id;
         self.interviewer_id = dto.interviewer_id;
         self.scheduled_at = dto.scheduled_at;
@@ -326,4 +311,3 @@ impl backbone_core::ApplyUpdateDto<UpdateInterviewDto> for Interview {
 // Add custom DTOs specific to Interview here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
-

@@ -7,7 +7,6 @@
 
 use async_trait::async_trait;
 use anyhow::Result;
-use uuid::Uuid;
 
 use crate::domain::entity::OfferLetterTemplate;
 
@@ -44,7 +43,6 @@ pub struct OfferLetterTemplatePaginatedResult {
 /// Filter parameters for list queries
 #[derive(Debug, Clone, Default)]
 pub struct OfferLetterTemplateFilter {
-    pub company_id: Option<Uuid>,
     pub name: Option<String>,
     pub subject: Option<String>,
     pub body: Option<String>,
@@ -53,7 +51,7 @@ pub struct OfferLetterTemplateFilter {
 impl OfferLetterTemplateFilter {
     /// Check if any filter is set
     pub fn has_filters(&self) -> bool {
-        self.company_id.is_some() || self.name.is_some() || self.subject.is_some() || self.body.is_some()
+        self.name.is_some() || self.subject.is_some() || self.body.is_some()
     }
 }
 

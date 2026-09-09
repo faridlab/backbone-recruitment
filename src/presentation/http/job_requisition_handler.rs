@@ -187,4 +187,3 @@ pub fn create_protected_job_requisition_routes<A: AuthMiddleware + Send + Sync +
             }
         }))
 }
-

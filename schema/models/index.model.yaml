@@ -12,12 +12,11 @@
 module: recruitment
 version: 3
 schema: recruitment
-
-# Company fence: talent acquisition records (candidates, applications, offers,
-# requisitions, interviews, stages, skill requirements, letter templates) are
-# company-private — every table carries company_id and row access is enforced
-# by the strict fence policies (ADR-0014 vocabulary).
-company_fence: strict
+# Tenancy: none, by design (ADR-0029). The module is tenant-agnostic and reusable —
+# it ships no scoping column and no fence declaration. A composing backend-service
+# that wants these tables org-scoped declares them in its tenancy.yaml; the
+# decorator installs org_unit_id, the RLS policy, the kind guard, and per-unit
+# uniques at composition time.
 description: "recruitment / applicant tracking (requisition -> candidate -> offer -> hire)"
 
 config:

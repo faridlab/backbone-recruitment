@@ -51,7 +51,6 @@ impl std::ops::Deref for JobOfferId {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct JobOffer {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
     pub employment_type: Option<String>,
@@ -71,10 +70,9 @@ impl JobOffer {
     }
 
     /// Create a new JobOffer with required fields
-    pub fn new(company_id: Uuid, application_id: Uuid, status: OfferStatus) -> Self {
+    pub fn new(application_id: Uuid, status: OfferStatus) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id,
             application_id,
             proposed_salary: None,
             employment_type: None,
@@ -184,9 +182,6 @@ impl JobOffer {
     pub fn apply_patch(&mut self, fields: std::collections::HashMap<String, serde_json::Value>) {
         for (key, value) in fields {
             match key.as_str() {
-                "company_id" => {
-                    if let Ok(v) = serde_json::from_value(value) { self.company_id = v; }
-                }
                 "application_id" => {
                     if let Ok(v) = serde_json::from_value(value) { self.application_id = v; }
                 }
@@ -262,7 +257,6 @@ impl backbone_orm::EntityRepoMeta for JobOffer {
     fn column_types() -> std::collections::HashMap<String, String> {
         let mut m = std::collections::HashMap::new();
         m.insert("id".to_string(), "uuid".to_string());
-        m.insert("company_id".to_string(), "uuid".to_string());
         m.insert("application_id".to_string(), "uuid".to_string());
         m.insert("letter_template_id".to_string(), "uuid".to_string());
         m.insert("status".to_string(), "offer_status".to_string());
@@ -270,9 +264,6 @@ impl backbone_orm::EntityRepoMeta for JobOffer {
     }
     fn search_fields() -> &'static [&'static str] {
         &[]
-    }
-    fn company_field() -> Option<&'static str> {
-        Some("company_id")
     }
 }
 
@@ -282,7 +273,6 @@ impl backbone_orm::EntityRepoMeta for JobOffer {
 /// System fields (id, metadata, timestamps) are auto-initialized.
 #[derive(Debug, Clone, Default)]
 pub struct JobOfferBuilder {
-    company_id: Option<Uuid>,
     application_id: Option<Uuid>,
     proposed_salary: Option<Decimal>,
     employment_type: Option<String>,
@@ -293,12 +283,6 @@ pub struct JobOfferBuilder {
 }
 
 impl JobOfferBuilder {
-    /// Set the company_id field (required)
-    pub fn company_id(mut self, value: Uuid) -> Self {
-        self.company_id = Some(value);
-        self
-    }
-
     /// Set the application_id field (required)
     pub fn application_id(mut self, value: Uuid) -> Self {
         self.application_id = Some(value);
@@ -345,12 +329,10 @@ impl JobOfferBuilder {
     ///
     /// Returns Err if any required field without a default is missing.
     pub fn build(self) -> Result<JobOffer, String> {
-        let company_id = self.company_id.ok_or_else(|| "company_id is required".to_string())?;
         let application_id = self.application_id.ok_or_else(|| "application_id is required".to_string())?;
 
         Ok(JobOffer {
             id: Uuid::new_v4(),
-            company_id,
             application_id,
             proposed_salary: self.proposed_salary,
             employment_type: self.employment_type,

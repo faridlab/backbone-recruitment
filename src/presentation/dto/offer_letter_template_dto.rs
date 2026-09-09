@@ -32,9 +32,6 @@ use crate::domain::entity::AuditMetadata;
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOfferLetterTemplateDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     pub name: String,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
@@ -56,9 +53,6 @@ pub struct CreateOfferLetterTemplateDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateOfferLetterTemplateDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     pub name: String,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
@@ -80,9 +74,6 @@ pub struct UpdateOfferLetterTemplateDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct PatchOfferLetterTemplateDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(skip_serializing_if = "Option::is_none", alias = "company_id")]
-    pub company_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -97,7 +88,7 @@ pub struct PatchOfferLetterTemplateDto {
 impl PatchOfferLetterTemplateDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.name.is_some() || self.subject.is_some() || self.body.is_some()
+        self.name.is_some() || self.subject.is_some() || self.body.is_some()
     }
 }
 
@@ -115,8 +106,6 @@ impl PatchOfferLetterTemplateDto {
 pub struct OfferLetterTemplateResponseDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     pub name: String,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
@@ -180,9 +169,9 @@ impl OfferLetterTemplateListResponseDto {
 #[serde(rename_all = "camelCase")]
 pub struct OfferLetterTemplateSummaryDto {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub name: String,
     pub subject: String,
+    pub body: String,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -194,7 +183,6 @@ impl From<OfferLetterTemplate> for OfferLetterTemplateResponseDto {
     fn from(entity: OfferLetterTemplate) -> Self {
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             name: entity.name,
             subject: entity.subject,
             body: entity.body,
@@ -208,9 +196,9 @@ impl From<OfferLetterTemplate> for OfferLetterTemplateSummaryDto {
         let created_at = backbone_core::PersistentEntity::created_at(&entity);
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             name: entity.name,
             subject: entity.subject,
+            body: entity.body,
             created_at,
         }
     }
@@ -220,7 +208,6 @@ impl From<CreateOfferLetterTemplateDto> for OfferLetterTemplate {
     fn from(dto: CreateOfferLetterTemplateDto) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id: dto.company_id,
             name: dto.name,
             subject: dto.subject,
             body: dto.body,
@@ -233,7 +220,6 @@ impl From<&OfferLetterTemplate> for OfferLetterTemplateResponseDto {
     fn from(entity: &OfferLetterTemplate) -> Self {
         Self {
             id: entity.id.clone(),
-            company_id: entity.company_id.clone(),
             name: entity.name.clone(),
             subject: entity.subject.clone(),
             body: entity.body.clone(),
@@ -250,7 +236,6 @@ impl backbone_core::FromCreateDto<CreateOfferLetterTemplateDto> for OfferLetterT
 
 impl backbone_core::ApplyUpdateDto<UpdateOfferLetterTemplateDto> for OfferLetterTemplate {
     fn apply_update(mut self, dto: UpdateOfferLetterTemplateDto) -> backbone_core::ServiceResult<Self> {
-        self.company_id = dto.company_id;
         self.name = dto.name;
         self.subject = dto.subject;
         self.body = dto.body;
@@ -266,4 +251,3 @@ impl backbone_core::ApplyUpdateDto<UpdateOfferLetterTemplateDto> for OfferLetter
 // Add custom DTOs specific to OfferLetterTemplate here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
-

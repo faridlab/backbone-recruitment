@@ -6,7 +6,6 @@
 
 -- INSERT INTO recruitment.interviews (
 --     id,
---     company_id,
 --     application_id,
 --     interviewer_id,
 --     scheduled_at,

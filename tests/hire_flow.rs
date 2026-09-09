@@ -4,7 +4,10 @@
 //!
 //! 1. seeds candidate → requisition → application → offer(extended);
 //! 2. calls the PRODUCER ([`JobOfferWriteService::hire`]) — in one tx the offer goes `accepted` AND a
-//!    `recruitment.hired` row is staged in `recruitment.outbox_events`;
+//!    `recruitment.hired` row is staged in `recruitment.outbox_events`. The call runs inside
+//!    [`backbone_orm::org_scope::with_org_request_scope`]: the test stands in for the composing
+//!    service, which owns the request's org scope (the staged outbox record must name the owning
+//!    tenant, and `hire` takes it from that scope's legacy company id);
 //! 3. runs the RELAY ([`backbone_outbox::relay::drain_once`]) — drains the outbox row and hands it to
 //!    the CONSUMER ([`backbone_employee::application::RecruitmentHiredHandler`]) exactly as the composer's bus does;
 //! 4. asserts the Employee + Employment were created in `employee.*` with the offer's data;
@@ -12,11 +15,14 @@
 //!    inbox dedup makes the effect exactly-once.
 //!
 //! The test is hermetic about schema: it builds the minimal DDL the flow touches inline (the producer's
-//! SQL is schema-pinned to `recruitment.*`/`employee.*`, so the real module tables are exercised). It
-//! SKIPS (not fails) when no DB is reachable, so `cargo test` stays green in any environment; set
-//! `DATABASE_URL` to run it for real.
+//! SQL is schema-pinned to `recruitment.*`/`employee.*`, so the real module tables are exercised). The
+//! `recruitment.*` shapes carry no tenancy column (ADR-0029: org scoping is composition-installed);
+//! `employee.*` is an unstripped sibling and keeps `company_id`, which the consumer fills from the
+//! event payload. It SKIPS (not fails) when no DB is reachable, so `cargo test` stays green in any
+//! environment; set `DATABASE_URL` to run it for real.
 
 use backbone_messaging::{IntegrationEventEnvelope, IntegrationEventHandler};
+use backbone_orm::org_scope::{with_org_request_scope, OrgScope};
 use backbone_outbox::{inbox, outbox, relay, OutboxRecord};
 use backbone_recruitment::application::service::JobOfferWriteService;
 use chrono::{DateTime, Utc};
@@ -98,11 +104,11 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
         .execute(pool)
         .await?;
 
-    // ── recruitment.* (the producer reads/writes these) ────────────────────────────────────────
+    // ── recruitment.* (the producer reads/writes these; no tenancy column — org scoping is
+    //    composition-installed, ADR-0029) ────────────────────────────────────────────────────────
     sqlx::query(
         r#"CREATE TABLE IF NOT EXISTS recruitment.candidates (
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-               company_id UUID NOT NULL,
                first_name TEXT NOT NULL,
                last_name TEXT,
                email TEXT
@@ -113,7 +119,6 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
     sqlx::query(
         r#"CREATE TABLE IF NOT EXISTS recruitment.job_requisitions (
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-               company_id UUID NOT NULL,
                department_id UUID,
                position_id UUID,
                title TEXT,
@@ -129,7 +134,6 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
     sqlx::query(
         r#"CREATE TABLE IF NOT EXISTS recruitment.recruitment_stages (
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-               company_id UUID NOT NULL,
                name TEXT NOT NULL,
                sequence INTEGER NOT NULL DEFAULT 10,
                is_hired BOOLEAN NOT NULL DEFAULT FALSE
@@ -140,7 +144,6 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
     sqlx::query(
         r#"CREATE TABLE IF NOT EXISTS recruitment.job_applications (
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-               company_id UUID NOT NULL,
                candidate_id UUID NOT NULL,
                requisition_id UUID NOT NULL,
                stage_id UUID NOT NULL REFERENCES recruitment.recruitment_stages(id),
@@ -152,7 +155,6 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
     sqlx::query(
         r#"CREATE TABLE IF NOT EXISTS recruitment.job_offers (
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-               company_id UUID NOT NULL,
                application_id UUID NOT NULL,
                proposed_salary NUMERIC,
                employment_type TEXT,
@@ -165,7 +167,7 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
     .execute(pool)
     .await?;
 
-    // ── employee.* (the consumer writes these) ────────────────────────────────────────────────
+    // ── employee.* (the consumer writes these; unstripped sibling — keeps company_id) ──────────
     sqlx::query(
         r#"CREATE TABLE IF NOT EXISTS employee.employees (
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -217,14 +219,15 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
 }
 
 /// Seed a hire-able offer chain (candidate → requisition → application → offer in `extended`) and
-/// return the offer id + the seed data so assertions can reference it.
+/// return the offer id + the seed data so assertions can reference it. `company_id` is minted only
+/// for the employee side: the consumer fills `employee.*`.company_id from the event payload, and
+/// the producer takes it from the org scope the test binds around `hire`.
 async fn seed_hireable_offer(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
     let company_id = Uuid::new_v4();
     let candidate_id: Uuid = sqlx::query(
-        "INSERT INTO recruitment.candidates (company_id, first_name, last_name, email)
-         VALUES ($1,'Ada','Lovelace','ada@example.com') RETURNING id",
+        "INSERT INTO recruitment.candidates (first_name, last_name, email)
+         VALUES ('Ada','Lovelace','ada@example.com') RETURNING id",
     )
-    .bind(company_id)
     .fetch_one(pool)
     .await
     .unwrap()
@@ -233,10 +236,9 @@ async fn seed_hireable_offer(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
     let department_id = Uuid::new_v4();
     let position_id = Uuid::new_v4();
     let requisition_id: Uuid = sqlx::query(
-        "INSERT INTO recruitment.job_requisitions (company_id, department_id, position_id)
-         VALUES ($1,$2,$3) RETURNING id",
+        "INSERT INTO recruitment.job_requisitions (department_id, position_id)
+         VALUES ($1,$2) RETURNING id",
     )
-    .bind(company_id)
     .bind(department_id)
     .bind(position_id)
     .fetch_one(pool)
@@ -247,20 +249,18 @@ async fn seed_hireable_offer(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
     // A two-stage pipeline; the application sits in the is_hired one so the
     // producer's hired-stage guard passes.
     let hired_stage_id: Uuid = sqlx::query(
-        "INSERT INTO recruitment.recruitment_stages (company_id, name, sequence, is_hired)
-         VALUES ($1,'Hired',90,TRUE) RETURNING id",
+        "INSERT INTO recruitment.recruitment_stages (name, sequence, is_hired)
+         VALUES ('Hired',90,TRUE) RETURNING id",
     )
-    .bind(company_id)
     .fetch_one(pool)
     .await
     .unwrap()
     .get("id");
 
     let application_id: Uuid = sqlx::query(
-        "INSERT INTO recruitment.job_applications (company_id, candidate_id, requisition_id, stage_id)
-         VALUES ($1,$2,$3,$4) RETURNING id",
+        "INSERT INTO recruitment.job_applications (candidate_id, requisition_id, stage_id)
+         VALUES ($1,$2,$3) RETURNING id",
     )
-    .bind(company_id)
     .bind(candidate_id)
     .bind(requisition_id)
     .bind(hired_stage_id)
@@ -270,10 +270,9 @@ async fn seed_hireable_offer(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
     .get("id");
 
     let offer_id: Uuid = sqlx::query(
-        "INSERT INTO recruitment.job_offers (company_id, application_id, employment_type, proposed_salary, status)
-         VALUES ($1,$2,'permanent',$3,'extended') RETURNING id",
+        "INSERT INTO recruitment.job_offers (application_id, employment_type, proposed_salary, status)
+         VALUES ($1,'permanent',$2,'extended') RETURNING id",
     )
-    .bind(company_id)
     .bind(application_id)
     .bind(Decimal::new(5_000_000, 0))
     .fetch_one(pool)
@@ -294,13 +293,17 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
 
     let (company_id, offer_id, department_id, position_id) = seed_hireable_offer(&pool).await;
 
-    // ── 1. PRODUCER: hire() marks the offer accepted + stages recruitment.hired, in one tx. ──────
+    // ── 1. PRODUCER: hire() marks the offer accepted + stages recruitment.hired, in one tx.
+    //     The org scope stand-in names the owning tenant for the outbox record. ─────────────────
     let svc = JobOfferWriteService::new(pool.clone());
-    let event_id = svc
-        .hire(company_id, offer_id)
-        .await
-        .expect("fresh hire")
-        .expect("a fresh hire stages an event");
+    let event_id = with_org_request_scope(
+        &pool,
+        OrgScope::for_company_unit(company_id),
+        async { svc.hire(offer_id).await },
+    )
+    .await?
+    .expect("fresh hire")
+    .expect("a fresh hire stages an event");
 
     // The state change committed.
     let offer_status: String =
@@ -437,8 +440,20 @@ async fn hire_is_idempotent_at_the_producer_too() -> Result<(), Box<dyn std::err
     let (_company_id, offer_id, _, _) = seed_hireable_offer(&pool).await;
     let svc = JobOfferWriteService::new(pool.clone());
 
-    let first = svc.hire(_company_id, offer_id).await?.expect("first hire stages an event");
-    let second = svc.hire(_company_id, offer_id).await?;
+    let first = with_org_request_scope(
+        &pool,
+        OrgScope::for_company_unit(_company_id),
+        async { svc.hire(offer_id).await },
+    )
+    .await?
+    .expect("first hire stages an event")
+    .expect("a fresh hire stages an event");
+    let second = with_org_request_scope(
+        &pool,
+        OrgScope::for_company_unit(_company_id),
+        async { svc.hire(offer_id).await },
+    )
+    .await??;
     assert!(second.is_none(), "re-hire of an accepted offer stages no second event");
 
     assert_eq!(

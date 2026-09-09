@@ -44,7 +44,6 @@ pub struct InterviewPaginatedResult {
 /// Filter parameters for list queries
 #[derive(Debug, Clone, Default)]
 pub struct InterviewFilter {
-    pub company_id: Option<Uuid>,
     pub application_id: Option<Uuid>,
     pub interviewer_id: Option<Uuid>,
     pub interview_format: Option<String>,
@@ -55,7 +54,7 @@ pub struct InterviewFilter {
 impl InterviewFilter {
     /// Check if any filter is set
     pub fn has_filters(&self) -> bool {
-        self.company_id.is_some() || self.application_id.is_some() || self.interviewer_id.is_some() || self.interview_format.is_some() || self.feedback.is_some() || self.status.is_some()
+        self.application_id.is_some() || self.interviewer_id.is_some() || self.interview_format.is_some() || self.feedback.is_some() || self.status.is_some()
     }
 }
 

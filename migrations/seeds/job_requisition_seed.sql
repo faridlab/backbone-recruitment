@@ -6,7 +6,6 @@
 
 -- INSERT INTO recruitment.job_requisitions (
 --     id,
---     company_id,
 --     department_id,
 --     position_id,
 --     title,

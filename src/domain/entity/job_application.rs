@@ -48,7 +48,6 @@ impl std::ops::Deref for JobApplicationId {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct JobApplication {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub candidate_id: Uuid,
     pub requisition_id: Uuid,
     pub stage_id: Uuid,
@@ -70,10 +69,9 @@ impl JobApplication {
     }
 
     /// Create a new JobApplication with required fields
-    pub fn new(company_id: Uuid, candidate_id: Uuid, requisition_id: Uuid, stage_id: Uuid, applied_at: DateTime<Utc>) -> Self {
+    pub fn new(candidate_id: Uuid, requisition_id: Uuid, stage_id: Uuid, applied_at: DateTime<Utc>) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id,
             candidate_id,
             requisition_id,
             stage_id,
@@ -180,9 +178,6 @@ impl JobApplication {
     pub fn apply_patch(&mut self, fields: std::collections::HashMap<String, serde_json::Value>) {
         for (key, value) in fields {
             match key.as_str() {
-                "company_id" => {
-                    if let Ok(v) = serde_json::from_value(value) { self.company_id = v; }
-                }
                 "candidate_id" => {
                     if let Ok(v) = serde_json::from_value(value) { self.candidate_id = v; }
                 }
@@ -264,7 +259,6 @@ impl backbone_orm::EntityRepoMeta for JobApplication {
     fn column_types() -> std::collections::HashMap<String, String> {
         let mut m = std::collections::HashMap::new();
         m.insert("id".to_string(), "uuid".to_string());
-        m.insert("company_id".to_string(), "uuid".to_string());
         m.insert("candidate_id".to_string(), "uuid".to_string());
         m.insert("requisition_id".to_string(), "uuid".to_string());
         m.insert("stage_id".to_string(), "uuid".to_string());
@@ -274,9 +268,6 @@ impl backbone_orm::EntityRepoMeta for JobApplication {
     fn search_fields() -> &'static [&'static str] {
         &[]
     }
-    fn company_field() -> Option<&'static str> {
-        Some("company_id")
-    }
 }
 
 /// Builder for JobApplication entity
@@ -285,7 +276,6 @@ impl backbone_orm::EntityRepoMeta for JobApplication {
 /// System fields (id, metadata, timestamps) are auto-initialized.
 #[derive(Debug, Clone, Default)]
 pub struct JobApplicationBuilder {
-    company_id: Option<Uuid>,
     candidate_id: Option<Uuid>,
     requisition_id: Option<Uuid>,
     stage_id: Option<Uuid>,
@@ -298,12 +288,6 @@ pub struct JobApplicationBuilder {
 }
 
 impl JobApplicationBuilder {
-    /// Set the company_id field (required)
-    pub fn company_id(mut self, value: Uuid) -> Self {
-        self.company_id = Some(value);
-        self
-    }
-
     /// Set the candidate_id field (required)
     pub fn candidate_id(mut self, value: Uuid) -> Self {
         self.candidate_id = Some(value);
@@ -362,14 +346,12 @@ impl JobApplicationBuilder {
     ///
     /// Returns Err if any required field without a default is missing.
     pub fn build(self) -> Result<JobApplication, String> {
-        let company_id = self.company_id.ok_or_else(|| "company_id is required".to_string())?;
         let candidate_id = self.candidate_id.ok_or_else(|| "candidate_id is required".to_string())?;
         let requisition_id = self.requisition_id.ok_or_else(|| "requisition_id is required".to_string())?;
         let stage_id = self.stage_id.ok_or_else(|| "stage_id is required".to_string())?;
 
         Ok(JobApplication {
             id: Uuid::new_v4(),
-            company_id,
             candidate_id,
             requisition_id,
             stage_id,

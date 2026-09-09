@@ -50,7 +50,6 @@ impl std::ops::Deref for RequisitionSkillId {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct RequisitionSkill {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub requisition_id: Uuid,
     pub skill_id: Uuid,
     pub required_proficiency: ProficiencyLevel,
@@ -66,10 +65,9 @@ impl RequisitionSkill {
     }
 
     /// Create a new RequisitionSkill with required fields
-    pub fn new(company_id: Uuid, requisition_id: Uuid, skill_id: Uuid, required_proficiency: ProficiencyLevel) -> Self {
+    pub fn new(requisition_id: Uuid, skill_id: Uuid, required_proficiency: ProficiencyLevel) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id,
             requisition_id,
             skill_id,
             required_proficiency,
@@ -136,9 +134,6 @@ impl RequisitionSkill {
     pub fn apply_patch(&mut self, fields: std::collections::HashMap<String, serde_json::Value>) {
         for (key, value) in fields {
             match key.as_str() {
-                "company_id" => {
-                    if let Ok(v) = serde_json::from_value(value) { self.company_id = v; }
-                }
                 "requisition_id" => {
                     if let Ok(v) = serde_json::from_value(value) { self.requisition_id = v; }
                 }
@@ -202,7 +197,6 @@ impl backbone_orm::EntityRepoMeta for RequisitionSkill {
     fn column_types() -> std::collections::HashMap<String, String> {
         let mut m = std::collections::HashMap::new();
         m.insert("id".to_string(), "uuid".to_string());
-        m.insert("company_id".to_string(), "uuid".to_string());
         m.insert("requisition_id".to_string(), "uuid".to_string());
         m.insert("skill_id".to_string(), "uuid".to_string());
         m.insert("required_proficiency".to_string(), "proficiency_level".to_string());
@@ -210,9 +204,6 @@ impl backbone_orm::EntityRepoMeta for RequisitionSkill {
     }
     fn search_fields() -> &'static [&'static str] {
         &[]
-    }
-    fn company_field() -> Option<&'static str> {
-        Some("company_id")
     }
 }
 
@@ -222,19 +213,12 @@ impl backbone_orm::EntityRepoMeta for RequisitionSkill {
 /// System fields (id, metadata, timestamps) are auto-initialized.
 #[derive(Debug, Clone, Default)]
 pub struct RequisitionSkillBuilder {
-    company_id: Option<Uuid>,
     requisition_id: Option<Uuid>,
     skill_id: Option<Uuid>,
     required_proficiency: Option<ProficiencyLevel>,
 }
 
 impl RequisitionSkillBuilder {
-    /// Set the company_id field (required)
-    pub fn company_id(mut self, value: Uuid) -> Self {
-        self.company_id = Some(value);
-        self
-    }
-
     /// Set the requisition_id field (required)
     pub fn requisition_id(mut self, value: Uuid) -> Self {
         self.requisition_id = Some(value);
@@ -257,14 +241,12 @@ impl RequisitionSkillBuilder {
     ///
     /// Returns Err if any required field without a default is missing.
     pub fn build(self) -> Result<RequisitionSkill, String> {
-        let company_id = self.company_id.ok_or_else(|| "company_id is required".to_string())?;
         let requisition_id = self.requisition_id.ok_or_else(|| "requisition_id is required".to_string())?;
         let skill_id = self.skill_id.ok_or_else(|| "skill_id is required".to_string())?;
         let required_proficiency = self.required_proficiency.ok_or_else(|| "required_proficiency is required".to_string())?;
 
         Ok(RequisitionSkill {
             id: Uuid::new_v4(),
-            company_id,
             requisition_id,
             skill_id,
             required_proficiency,

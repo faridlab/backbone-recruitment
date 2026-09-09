@@ -66,6 +66,9 @@ pub struct RecruitmentModule {
     pub(crate) job_application_service: Arc<JobApplicationService>,
     pub(crate) job_offer_service: Arc<JobOfferService>,
     pub(crate) job_requisition_service: Arc<JobRequisitionService>,
+    pub(crate) offer_letter_template_service: Arc<OfferLetterTemplateService>,
+    pub(crate) recruitment_stage_service: Arc<RecruitmentStageService>,
+    pub(crate) requisition_skill_service: Arc<RequisitionSkillService>,
     // <<< CUSTOM FIELDS
     /// Hand-written write services, public so the composer / tests can drive the verbs directly.
     /// - offers: extend / hire (the hire-handoff producer: offer→accepted + `recruitment.hired`
@@ -78,11 +81,6 @@ pub struct RecruitmentModule {
     pub job_application_write_service: Arc<application::service::JobApplicationWriteService>,
     pub interview_write_service: Arc<application::service::InterviewWriteService>,
     pub requisition_skill_write_service: Arc<application::service::RequisitionSkillWriteService>,
-    // END CUSTOM
-    pub(crate) offer_letter_template_service: Arc<OfferLetterTemplateService>,
-    pub(crate) recruitment_stage_service: Arc<RecruitmentStageService>,
-    pub(crate) requisition_skill_service: Arc<RequisitionSkillService>,
-    // <<< CUSTOM FIELDS
     // END CUSTOM
 }
 
@@ -184,7 +182,7 @@ impl RecruitmentModuleBuilder {
     pub fn new() -> Self {
         Self {
             db_pool: None,
-            // <<< CUSTOM
+            // <<< CUSTOM - optional outbound seams (default: unwired, fail-closed)
             activity_sink: None,
             letter_sink: None,
             // END CUSTOM
@@ -238,6 +236,18 @@ impl RecruitmentModuleBuilder {
         let job_requisition_repository = Arc::new(JobRequisitionRepository::new(db_pool.clone()));
         let job_requisition_service = Arc::new(JobRequisitionService::with_repository(job_requisition_repository.clone()));
 
+        // OfferLetterTemplate service
+        let offer_letter_template_repository = Arc::new(OfferLetterTemplateRepository::new(db_pool.clone()));
+        let offer_letter_template_service = Arc::new(OfferLetterTemplateService::with_repository(offer_letter_template_repository.clone()));
+
+        // RecruitmentStage service
+        let recruitment_stage_repository = Arc::new(RecruitmentStageRepository::new(db_pool.clone()));
+        let recruitment_stage_service = Arc::new(RecruitmentStageService::with_repository(recruitment_stage_repository.clone()));
+
+        // RequisitionSkill service
+        let requisition_skill_repository = Arc::new(RequisitionSkillRepository::new(db_pool.clone()));
+        let requisition_skill_service = Arc::new(RequisitionSkillService::with_repository(requisition_skill_repository.clone()));
+
         // <<< CUSTOM
         // Hand-written write services, bound to the same pool as the repos. Each opens its own
         // scoped transaction per verb; no shared mutable state, so an Arc is purely for cheap reuse.
@@ -259,20 +269,6 @@ impl RecruitmentModuleBuilder {
         let requisition_skill_write_service =
             Arc::new(application::service::RequisitionSkillWriteService::new(db_pool.clone()));
         // END CUSTOM
-        // OfferLetterTemplate service
-        let offer_letter_template_repository = Arc::new(OfferLetterTemplateRepository::new(db_pool.clone()));
-        let offer_letter_template_service = Arc::new(OfferLetterTemplateService::with_repository(offer_letter_template_repository.clone()));
-
-        // RecruitmentStage service
-        let recruitment_stage_repository = Arc::new(RecruitmentStageRepository::new(db_pool.clone()));
-        let recruitment_stage_service = Arc::new(RecruitmentStageService::with_repository(recruitment_stage_repository.clone()));
-
-        // RequisitionSkill service
-        let requisition_skill_repository = Arc::new(RequisitionSkillRepository::new(db_pool.clone()));
-        let requisition_skill_service = Arc::new(RequisitionSkillService::with_repository(requisition_skill_repository.clone()));
-
-        // <<< CUSTOM
-        // END CUSTOM
 
         Ok(RecruitmentModule {
             candidate_service,
@@ -289,8 +285,6 @@ impl RecruitmentModuleBuilder {
             offer_letter_template_service,
             recruitment_stage_service,
             requisition_skill_service,
-            // <<< CUSTOM
-            // END CUSTOM
         })
     }
 }

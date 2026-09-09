@@ -24,7 +24,6 @@ impl TestDataGenerator for RecruitmentStageTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": Uuid::new_v4().to_string(),
-            "company_id": Uuid::new_v4().to_string(),
             "name": format!("Test {}", Uuid::new_v4().to_string().split('-').next().unwrap()),
             "sequence": 1,
             "is_hired": false,
@@ -38,7 +37,6 @@ impl TestDataGenerator for RecruitmentStageTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": id,
-            "company_id": Uuid::new_v4().to_string(),
             "name": format!("Test {}", Uuid::new_v4().to_string().split('-').next().unwrap()),
             "sequence": 1,
             "is_hired": false,

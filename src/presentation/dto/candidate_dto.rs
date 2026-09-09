@@ -33,9 +33,6 @@ use crate::domain::entity::CandidateSource;
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateCandidateDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     #[serde(alias = "first_name")]
     pub first_name: String,
@@ -66,9 +63,6 @@ pub struct CreateCandidateDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateCandidateDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     #[serde(alias = "first_name")]
     pub first_name: String,
@@ -99,9 +93,6 @@ pub struct UpdateCandidateDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct PatchCandidateDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(skip_serializing_if = "Option::is_none", alias = "company_id")]
-    pub company_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "first_name")]
     pub first_name: Option<String>,
@@ -122,7 +113,7 @@ pub struct PatchCandidateDto {
 impl PatchCandidateDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.first_name.is_some() || self.last_name.is_some() || self.email.is_some() || self.phone.is_some() || self.source.is_some() || self.current_employer.is_some() || self.resume_url.is_some()
+        self.first_name.is_some() || self.last_name.is_some() || self.email.is_some() || self.phone.is_some() || self.source.is_some() || self.current_employer.is_some() || self.resume_url.is_some()
     }
 }
 
@@ -140,8 +131,6 @@ impl PatchCandidateDto {
 pub struct CandidateResponseDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     pub first_name: String,
     pub last_name: Option<String>,
@@ -207,9 +196,9 @@ impl CandidateListResponseDto {
 #[serde(rename_all = "camelCase")]
 pub struct CandidateSummaryDto {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub first_name: String,
     pub last_name: Option<String>,
+    pub email: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -221,7 +210,6 @@ impl From<Candidate> for CandidateResponseDto {
     fn from(entity: Candidate) -> Self {
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             first_name: entity.first_name,
             last_name: entity.last_name,
             email: entity.email,
@@ -239,9 +227,9 @@ impl From<Candidate> for CandidateSummaryDto {
         let created_at = backbone_core::PersistentEntity::created_at(&entity);
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             first_name: entity.first_name,
             last_name: entity.last_name,
+            email: entity.email,
             created_at,
         }
     }
@@ -251,7 +239,6 @@ impl From<CreateCandidateDto> for Candidate {
     fn from(dto: CreateCandidateDto) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id: dto.company_id,
             first_name: dto.first_name,
             last_name: dto.last_name,
             email: dto.email,
@@ -268,7 +255,6 @@ impl From<&Candidate> for CandidateResponseDto {
     fn from(entity: &Candidate) -> Self {
         Self {
             id: entity.id.clone(),
-            company_id: entity.company_id.clone(),
             first_name: entity.first_name.clone(),
             last_name: entity.last_name.clone(),
             email: entity.email.clone(),
@@ -289,7 +275,6 @@ impl backbone_core::FromCreateDto<CreateCandidateDto> for Candidate {
 
 impl backbone_core::ApplyUpdateDto<UpdateCandidateDto> for Candidate {
     fn apply_update(mut self, dto: UpdateCandidateDto) -> backbone_core::ServiceResult<Self> {
-        self.company_id = dto.company_id;
         self.first_name = dto.first_name;
         self.last_name = dto.last_name;
         self.email = dto.email;
@@ -309,4 +294,3 @@ impl backbone_core::ApplyUpdateDto<UpdateCandidateDto> for Candidate {
 // Add custom DTOs specific to Candidate here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
-

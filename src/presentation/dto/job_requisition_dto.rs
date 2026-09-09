@@ -34,9 +34,6 @@ use crate::domain::entity::RequisitionStatus;
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateJobRequisitionDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "department_id")]
     pub department_id: Option<Uuid>,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "position_id")]
@@ -73,9 +70,6 @@ pub struct CreateJobRequisitionDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateJobRequisitionDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "department_id")]
     pub department_id: Option<Uuid>,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "position_id")]
@@ -112,9 +106,6 @@ pub struct UpdateJobRequisitionDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct PatchJobRequisitionDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(skip_serializing_if = "Option::is_none", alias = "company_id")]
-    pub company_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none", alias = "department_id")]
     pub department_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none", alias = "position_id")]
@@ -144,7 +135,7 @@ pub struct PatchJobRequisitionDto {
 impl PatchJobRequisitionDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.department_id.is_some() || self.position_id.is_some() || self.title.is_some() || self.headcount.is_some() || self.filled_headcount.is_some() || self.employment_type.is_some() || self.status.is_some() || self.opened_by.is_some() || self.budget.is_some() || self.deadline.is_some()
+        self.department_id.is_some() || self.position_id.is_some() || self.title.is_some() || self.headcount.is_some() || self.filled_headcount.is_some() || self.employment_type.is_some() || self.status.is_some() || self.opened_by.is_some() || self.budget.is_some() || self.deadline.is_some()
     }
 }
 
@@ -162,8 +153,6 @@ impl PatchJobRequisitionDto {
 pub struct JobRequisitionResponseDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    pub company_id: Uuid,
     pub department_id: Option<Uuid>,
     pub position_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
@@ -235,9 +224,9 @@ impl JobRequisitionListResponseDto {
 #[serde(rename_all = "camelCase")]
 pub struct JobRequisitionSummaryDto {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub department_id: Option<Uuid>,
     pub position_id: Option<Uuid>,
+    pub title: String,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -249,7 +238,6 @@ impl From<JobRequisition> for JobRequisitionResponseDto {
     fn from(entity: JobRequisition) -> Self {
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             department_id: entity.department_id,
             position_id: entity.position_id,
             title: entity.title,
@@ -270,9 +258,9 @@ impl From<JobRequisition> for JobRequisitionSummaryDto {
         let created_at = backbone_core::PersistentEntity::created_at(&entity);
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             department_id: entity.department_id,
             position_id: entity.position_id,
+            title: entity.title,
             created_at,
         }
     }
@@ -282,7 +270,6 @@ impl From<CreateJobRequisitionDto> for JobRequisition {
     fn from(dto: CreateJobRequisitionDto) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id: dto.company_id,
             department_id: dto.department_id,
             position_id: dto.position_id,
             title: dto.title,
@@ -302,7 +289,6 @@ impl From<&JobRequisition> for JobRequisitionResponseDto {
     fn from(entity: &JobRequisition) -> Self {
         Self {
             id: entity.id.clone(),
-            company_id: entity.company_id.clone(),
             department_id: entity.department_id.clone(),
             position_id: entity.position_id.clone(),
             title: entity.title.clone(),
@@ -326,7 +312,6 @@ impl backbone_core::FromCreateDto<CreateJobRequisitionDto> for JobRequisition {
 
 impl backbone_core::ApplyUpdateDto<UpdateJobRequisitionDto> for JobRequisition {
     fn apply_update(mut self, dto: UpdateJobRequisitionDto) -> backbone_core::ServiceResult<Self> {
-        self.company_id = dto.company_id;
         self.department_id = dto.department_id;
         self.position_id = dto.position_id;
         self.title = dto.title;
@@ -349,4 +334,3 @@ impl backbone_core::ApplyUpdateDto<UpdateJobRequisitionDto> for JobRequisition {
 // Add custom DTOs specific to JobRequisition here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
-

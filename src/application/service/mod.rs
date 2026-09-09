@@ -12,6 +12,10 @@ pub mod interview_service;
 pub mod job_application_service;
 pub mod job_offer_service;
 pub mod job_requisition_service;
+pub mod offer_letter_template_service;
+pub mod recruitment_stage_service;
+pub mod requisition_skill_service;
+
 // <<< CUSTOM
 // Hand-written write services (user-owned, never regenerated):
 // - offer verbs + the hire-handoff producer (offer→accepted + `recruitment.hired`
@@ -26,12 +30,6 @@ pub mod job_offer_write_service;
 pub mod letter_port;
 pub mod offer_letter_render;
 pub mod requisition_skill_write_service;
-// END CUSTOM
-pub mod offer_letter_template_service;
-pub mod recruitment_stage_service;
-pub mod requisition_skill_service;
-
-// <<< CUSTOM
 // END CUSTOM
 
 pub use candidate_service::CandidateService;

@@ -2,31 +2,26 @@
 # Domain: recruitment
 # Entity: RecruitmentStage
 # Description: A configurable pipeline stage that applications move through.
-#              The pipeline itself is company config (name + order); the flags
+#              The pipeline itself is tenant config (name + order); the flags
 #              carry the semantics other code keys on — entering an is_hired
 #              stage fills a requisition vacancy, folded marks background
 #              stages excluded from active-funnel counts. The application
 #              lifecycle is the stage reference (job_applications.stage_id,
 #              lifecycle: stage_ref), never a stored status enum: the pipeline
-#              is whatever rows the company configured, so hardcoding the
+#              is whatever rows the tenant configured, so hardcoding the
 #              states would fight the config.
 # =============================================================================
 
 models:
   - name: RecruitmentStage
     collection: recruitment_stages
-    description: "A company-configurable pipeline stage (order + semantic flags)."
+    description: "A tenant-configurable pipeline stage (order + semantic flags)."
 
     fields:
       id:
         type: uuid
         attributes: ["@id", "@default(uuid)"]
         description: "Unique stage id"
-
-      company_id:
-        type: uuid
-        attributes: ["@required", "@exclude_from_foreign_key_check"]
-        description: "Owning company # logical FK organization.Company.id"
 
       name:
         type: string
@@ -58,8 +53,7 @@ models:
         attributes: ["@audit_metadata"]
         description: "Audit metadata"
 
+    # No tenancy indexes (ADR-0029): the module is tenant-agnostic. Per-unit uniques
+    # (stage name) and their scope-leading indexes are installed by the
+    # composing service's tenancy decorator, not declared here.
     indexes:
-      - type: unique
-        fields: [company_id, name]
-      - type: index
-        fields: [company_id, sequence]

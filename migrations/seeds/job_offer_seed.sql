@@ -6,7 +6,6 @@
 
 -- INSERT INTO recruitment.job_offers (
 --     id,
---     company_id,
 --     application_id,
 --     proposed_salary,
 --     employment_type,

@@ -17,11 +17,6 @@ models:
         attributes: ["@id", "@default(uuid)"]
         description: "Unique interview id"
 
-      company_id:
-        type: uuid
-        attributes: ["@required", "@exclude_from_foreign_key_check"]
-        description: "Owning company # logical FK organization.Company.id"
-
       application_id:
         type: uuid
         attributes: ["@required", "@foreign_key(JobApplication.id)"]
@@ -68,8 +63,6 @@ models:
         description: "Audit metadata"
 
     indexes:
-      - type: index
-        fields: [company_id, status]
       - type: index
         fields: [application_id]
       - type: index

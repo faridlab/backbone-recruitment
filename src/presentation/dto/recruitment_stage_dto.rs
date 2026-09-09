@@ -32,9 +32,6 @@ use crate::domain::entity::AuditMetadata;
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateRecruitmentStageDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     pub name: String,
     #[cfg_attr(feature = "openapi", schema(example = 42))]
@@ -61,9 +58,6 @@ pub struct CreateRecruitmentStageDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateRecruitmentStageDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(alias = "company_id")]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     pub name: String,
     #[cfg_attr(feature = "openapi", schema(example = 42))]
@@ -90,9 +84,6 @@ pub struct UpdateRecruitmentStageDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct PatchRecruitmentStageDto {
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    #[serde(skip_serializing_if = "Option::is_none", alias = "company_id")]
-    pub company_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -112,7 +103,7 @@ pub struct PatchRecruitmentStageDto {
 impl PatchRecruitmentStageDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.company_id.is_some() || self.name.is_some() || self.sequence.is_some() || self.is_hired.is_some() || self.folded.is_some() || self.description.is_some()
+        self.name.is_some() || self.sequence.is_some() || self.is_hired.is_some() || self.folded.is_some() || self.description.is_some()
     }
 }
 
@@ -130,8 +121,6 @@ impl PatchRecruitmentStageDto {
 pub struct RecruitmentStageResponseDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub id: Uuid,
-    #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
-    pub company_id: Uuid,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     pub name: String,
     #[cfg_attr(feature = "openapi", schema(example = 42))]
@@ -198,9 +187,9 @@ impl RecruitmentStageListResponseDto {
 #[serde(rename_all = "camelCase")]
 pub struct RecruitmentStageSummaryDto {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub name: String,
     pub sequence: i32,
+    pub is_hired: bool,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -212,7 +201,6 @@ impl From<RecruitmentStage> for RecruitmentStageResponseDto {
     fn from(entity: RecruitmentStage) -> Self {
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             name: entity.name,
             sequence: entity.sequence,
             is_hired: entity.is_hired,
@@ -228,9 +216,9 @@ impl From<RecruitmentStage> for RecruitmentStageSummaryDto {
         let created_at = backbone_core::PersistentEntity::created_at(&entity);
         Self {
             id: entity.id,
-            company_id: entity.company_id,
             name: entity.name,
             sequence: entity.sequence,
+            is_hired: entity.is_hired,
             created_at,
         }
     }
@@ -240,7 +228,6 @@ impl From<CreateRecruitmentStageDto> for RecruitmentStage {
     fn from(dto: CreateRecruitmentStageDto) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id: dto.company_id,
             name: dto.name,
             sequence: dto.sequence,
             is_hired: dto.is_hired,
@@ -255,7 +242,6 @@ impl From<&RecruitmentStage> for RecruitmentStageResponseDto {
     fn from(entity: &RecruitmentStage) -> Self {
         Self {
             id: entity.id.clone(),
-            company_id: entity.company_id.clone(),
             name: entity.name.clone(),
             sequence: entity.sequence.clone(),
             is_hired: entity.is_hired.clone(),
@@ -274,7 +260,6 @@ impl backbone_core::FromCreateDto<CreateRecruitmentStageDto> for RecruitmentStag
 
 impl backbone_core::ApplyUpdateDto<UpdateRecruitmentStageDto> for RecruitmentStage {
     fn apply_update(mut self, dto: UpdateRecruitmentStageDto) -> backbone_core::ServiceResult<Self> {
-        self.company_id = dto.company_id;
         self.name = dto.name;
         self.sequence = dto.sequence;
         self.is_hired = dto.is_hired;
@@ -292,4 +277,3 @@ impl backbone_core::ApplyUpdateDto<UpdateRecruitmentStageDto> for RecruitmentSta
 // Add custom DTOs specific to RecruitmentStage here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
-

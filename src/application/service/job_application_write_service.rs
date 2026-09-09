@@ -1,10 +1,13 @@
 //! Stage-driven application transitions (hand-authored, user-owned).
 //!
 //! This service is the ONE door for moving an application through the hiring
-//! pipeline. Every verb takes the caller's `company` explicitly and binds it
-//! onto the transaction before any statement runs, so the whole path is
-//! correct under the strict company fence (row-level security) — a scoped
-//! non-owner session cannot smuggle a read or write past `WHERE company_id`.
+//! pipeline. Every verb that opens its own transaction relays the ambient
+//! request scope (when one is bound) onto that transaction before any
+//! statement runs, so a deployment whose composing service installed the
+//! tenancy decorator's row-level fence sees only the caller's org-unit rows —
+//! an unscoped transaction cannot read or write past the policy. Unfenced
+//! deployments have no ambient scope and the relay is skipped entirely; the
+//! module stays posture-agnostic.
 //!
 //! Two invariants live here and nowhere else:
 //!
@@ -25,7 +28,7 @@
 //! hired / refused" is derived (stage flags + refusal marks) on read —
 //! [`JobApplicationWriteService::pipeline`] is that projection.
 
-use backbone_orm::company_scope;
+use backbone_orm::org_scope;
 use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -35,15 +38,15 @@ use uuid::Uuid;
 pub enum ApplicationError {
     #[error("application {0} not found")]
     NotFound(Uuid),
-    #[error("candidate {0} not found in company")]
+    #[error("candidate {0} not found")]
     CandidateNotFound(Uuid),
-    #[error("requisition {0} not found in company")]
+    #[error("requisition {0} not found")]
     RequisitionNotFound(Uuid),
     #[error("requisition {0} is not open for applications")]
     RequisitionNotOpen(Uuid),
-    #[error("stage {0} not found in company")]
+    #[error("stage {0} not found")]
     StageNotFound(Uuid),
-    #[error("the company has no pipeline stages configured")]
+    #[error("no pipeline stages configured")]
     NoStagesConfigured,
     #[error("application {0} is already refused — refused applications cannot move")]
     AlreadyRefused(Uuid),
@@ -87,7 +90,6 @@ impl ApplicationError {
 /// Input for `create_application`.
 #[derive(Debug, Clone)]
 pub struct NewJobApplication {
-    pub company_id: Uuid,
     pub candidate_id: Uuid,
     pub requisition_id: Uuid,
 }
@@ -121,26 +123,29 @@ impl JobApplicationWriteService {
         Self { pool }
     }
 
-    /// Create an application in the company's FIRST pipeline stage (lowest
-    /// `sequence`). Stages are company configuration — there is no global
-    /// default pipeline to fall back on, so a company with no stages fails
-    /// closed with [`ApplicationError::NoStagesConfigured`].
+    /// Create an application in the caller's FIRST pipeline stage (lowest
+    /// `sequence`). Stages are tenant configuration — there is no global
+    /// default pipeline to fall back on, so a deployment with no stages
+    /// visible to the caller fails closed with
+    /// [`ApplicationError::NoStagesConfigured`].
     pub async fn create_application(
         &self,
         input: NewJobApplication,
     ) -> Result<Uuid, ApplicationError> {
-        let company = input.company_id;
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
 
-        // Candidate must exist in this company (fenced join — no cross-tenant ids).
-        let candidate: Option<Uuid> = sqlx::query_scalar(
-            "SELECT id FROM recruitment.candidates WHERE id = $1 AND company_id = $2",
-        )
-        .bind(input.candidate_id)
-        .bind(company)
-        .fetch_optional(&mut *tx)
-        .await?;
+        // Candidate must exist (under a decorated deployment the org fence
+        // limits the probe to the caller's own rows).
+        let candidate: Option<Uuid> =
+            sqlx::query_scalar("SELECT id FROM recruitment.candidates WHERE id = $1")
+                .bind(input.candidate_id)
+                .fetch_optional(&mut *tx)
+                .await?;
         if candidate.is_none() {
             tx.rollback().await?;
             return Err(ApplicationError::CandidateNotFound(input.candidate_id));
@@ -148,10 +153,9 @@ impl JobApplicationWriteService {
 
         // Requisition must exist and be open for applications.
         let requisition_open: Option<String> = sqlx::query_scalar(
-            "SELECT status::text FROM recruitment.job_requisitions WHERE id = $1 AND company_id = $2",
+            "SELECT status::text FROM recruitment.job_requisitions WHERE id = $1",
         )
         .bind(input.requisition_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
         match requisition_open.as_deref() {
@@ -166,13 +170,12 @@ impl JobApplicationWriteService {
             }
         }
 
-        // Entry stage = the company's first by sequence. Fail-closed when the
-        // company has configured no pipeline yet.
+        // Entry stage = the caller's first by sequence. Fail-closed when no
+        // pipeline has been configured yet.
         let entry_stage: Option<Uuid> = sqlx::query_scalar(
             "SELECT id FROM recruitment.recruitment_stages \
-             WHERE company_id = $1 ORDER BY sequence ASC, id ASC LIMIT 1",
+             ORDER BY sequence ASC, id ASC LIMIT 1",
         )
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
         let stage_id = match entry_stage {
@@ -186,14 +189,13 @@ impl JobApplicationWriteService {
         let id = Uuid::new_v4();
         sqlx::query(
             r#"INSERT INTO recruitment.job_applications
-                   (id, company_id, candidate_id, requisition_id, stage_id,
+                   (id, candidate_id, requisition_id, stage_id,
                     stage_updated_at, applied_at, metadata)
-               VALUES ($1, $2, $3, $4, $5, NOW(), NOW(),
+               VALUES ($1, $2, $3, $4, NOW(), NOW(),
                        '{"created_at":null,"updated_at":null,"deleted_at":null,
                          "created_by":null,"updated_by":null,"deleted_by":null}'::jsonb)"#,
         )
         .bind(id)
-        .bind(company)
         .bind(input.candidate_id)
         .bind(input.requisition_id)
         .bind(stage_id)
@@ -215,12 +217,15 @@ impl JobApplicationWriteService {
     /// leaving one releases the opening and clears it.
     pub async fn move_stage(
         &self,
-        company: Uuid,
         application_id: Uuid,
         to_stage_id: Uuid,
     ) -> Result<bool, ApplicationError> {
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
 
         // Lock the application AND its requisition together: the vacancy
         // counter and the move must not race a concurrent hire on the same
@@ -238,12 +243,11 @@ impl JobApplicationWriteService {
                  JOIN recruitment.recruitment_stages cur ON cur.id = a.stage_id
                  JOIN recruitment.recruitment_stages tgt ON tgt.id = $2
                  JOIN recruitment.job_requisitions  r   ON r.id = a.requisition_id
-                WHERE a.id = $1 AND a.company_id = $3
+                WHERE a.id = $1
                 FOR UPDATE OF a, r"#,
         )
         .bind(application_id)
         .bind(to_stage_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
 
@@ -253,10 +257,9 @@ impl JobApplicationWriteService {
             // re-probe each separately for the right error.
             None => {
                 let app: Option<Uuid> = sqlx::query_scalar(
-                    "SELECT id FROM recruitment.job_applications WHERE id = $1 AND company_id = $2",
+                    "SELECT id FROM recruitment.job_applications WHERE id = $1",
                 )
                 .bind(application_id)
-                .bind(company)
                 .fetch_optional(&mut *tx)
                 .await?;
                 tx.rollback().await?;
@@ -339,12 +342,15 @@ impl JobApplicationWriteService {
     /// held (the vacancy coupling's other door).
     pub async fn refuse(
         &self,
-        company: Uuid,
         application_id: Uuid,
         reason: Option<String>,
     ) -> Result<(), ApplicationError> {
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
 
         let row = sqlx::query(
             r#"SELECT a.refused_at AS refused_at,
@@ -353,11 +359,10 @@ impl JobApplicationWriteService {
                  FROM recruitment.job_applications a
                  JOIN recruitment.recruitment_stages s ON s.id = a.stage_id
                  JOIN recruitment.job_requisitions  r ON r.id = a.requisition_id
-                WHERE a.id = $1 AND a.company_id = $2
+                WHERE a.id = $1
                 FOR UPDATE OF a, r"#,
         )
         .bind(application_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
 
@@ -403,16 +408,18 @@ impl JobApplicationWriteService {
 
     /// The derived status projection for one application — "ongoing / hired /
     /// refused" computed from the stage flags and refusal marks instead of
-    /// being stored. `None` when the id is unknown in this company.
+    /// being stored. `None` when the id is unknown (or invisible under the
+    /// caller's org fence).
     pub async fn pipeline(
         &self,
-        company: Uuid,
         application_id: Uuid,
     ) -> Result<Option<PipelineStatus>, ApplicationError> {
-        // Read inside a bound scope too: under the fence an unbound read
-        // returns zero rows regardless of the WHERE clause.
+        // Read inside a scoped transaction: under a decorated deployment an
+        // unbound read would return zero rows regardless of the WHERE clause.
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
         let row = sqlx::query(
             r#"SELECT a.id, a.stage_id, s.name AS stage_name, s.sequence AS stage_sequence,
                       (s.is_hired) AS is_hired, a.refused_at, a.stage_updated_at, a.date_closed,
@@ -420,10 +427,9 @@ impl JobApplicationWriteService {
                  FROM recruitment.job_applications a
                  JOIN recruitment.recruitment_stages s ON s.id = a.stage_id
                  JOIN recruitment.job_requisitions  r ON r.id = a.requisition_id
-                WHERE a.id = $1 AND a.company_id = $2"#,
+                WHERE a.id = $1"#,
         )
         .bind(application_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
         tx.commit().await?;

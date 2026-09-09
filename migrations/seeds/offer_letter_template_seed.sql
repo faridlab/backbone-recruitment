@@ -6,7 +6,6 @@
 
 -- INSERT INTO recruitment.offer_letter_templates (
 --     id,
---     company_id,
 --     name,
 --     subject,
 --     body,

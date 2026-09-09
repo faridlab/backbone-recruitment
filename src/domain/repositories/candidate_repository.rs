@@ -7,7 +7,6 @@
 
 use async_trait::async_trait;
 use anyhow::Result;
-use uuid::Uuid;
 
 use crate::domain::entity::{Candidate, CandidateSource};
 
@@ -44,7 +43,6 @@ pub struct CandidatePaginatedResult {
 /// Filter parameters for list queries
 #[derive(Debug, Clone, Default)]
 pub struct CandidateFilter {
-    pub company_id: Option<Uuid>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub email: Option<String>,
@@ -57,7 +55,7 @@ pub struct CandidateFilter {
 impl CandidateFilter {
     /// Check if any filter is set
     pub fn has_filters(&self) -> bool {
-        self.company_id.is_some() || self.first_name.is_some() || self.last_name.is_some() || self.email.is_some() || self.phone.is_some() || self.source.is_some() || self.current_employer.is_some() || self.resume_url.is_some()
+        self.first_name.is_some() || self.last_name.is_some() || self.email.is_some() || self.phone.is_some() || self.source.is_some() || self.current_employer.is_some() || self.resume_url.is_some()
     }
 }
 

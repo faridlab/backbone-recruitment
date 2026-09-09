@@ -17,11 +17,6 @@ models:
         attributes: ["@id", "@default(uuid)"]
         description: "Unique requisition id"
 
-      company_id:
-        type: uuid
-        attributes: ["@required", "@exclude_from_foreign_key_check"]
-        description: "Owning company # logical FK organization.Company.id"
-
       department_id:
         type: uuid?
         attributes: ["@exclude_from_foreign_key_check"]
@@ -77,8 +72,6 @@ models:
         description: "Audit metadata"
 
     indexes:
-      - type: index
-        fields: [company_id, status]
       - type: index
         fields: [department_id]
       - type: index

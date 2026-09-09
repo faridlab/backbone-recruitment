@@ -50,7 +50,6 @@ impl std::ops::Deref for InterviewId {
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Interview {
     pub id: Uuid,
-    pub company_id: Uuid,
     pub application_id: Uuid,
     pub interviewer_id: Uuid,
     pub scheduled_at: DateTime<Utc>,
@@ -71,10 +70,9 @@ impl Interview {
     }
 
     /// Create a new Interview with required fields
-    pub fn new(company_id: Uuid, application_id: Uuid, interviewer_id: Uuid, scheduled_at: DateTime<Utc>, status: InterviewStatus) -> Self {
+    pub fn new(application_id: Uuid, interviewer_id: Uuid, scheduled_at: DateTime<Utc>, status: InterviewStatus) -> Self {
         Self {
             id: Uuid::new_v4(),
-            company_id,
             application_id,
             interviewer_id,
             scheduled_at,
@@ -179,9 +177,6 @@ impl Interview {
     pub fn apply_patch(&mut self, fields: std::collections::HashMap<String, serde_json::Value>) {
         for (key, value) in fields {
             match key.as_str() {
-                "company_id" => {
-                    if let Ok(v) = serde_json::from_value(value) { self.company_id = v; }
-                }
                 "application_id" => {
                     if let Ok(v) = serde_json::from_value(value) { self.application_id = v; }
                 }
@@ -260,7 +255,6 @@ impl backbone_orm::EntityRepoMeta for Interview {
     fn column_types() -> std::collections::HashMap<String, String> {
         let mut m = std::collections::HashMap::new();
         m.insert("id".to_string(), "uuid".to_string());
-        m.insert("company_id".to_string(), "uuid".to_string());
         m.insert("application_id".to_string(), "uuid".to_string());
         m.insert("interviewer_id".to_string(), "uuid".to_string());
         m.insert("status".to_string(), "interview_status".to_string());
@@ -268,9 +262,6 @@ impl backbone_orm::EntityRepoMeta for Interview {
     }
     fn search_fields() -> &'static [&'static str] {
         &[]
-    }
-    fn company_field() -> Option<&'static str> {
-        Some("company_id")
     }
 }
 
@@ -280,7 +271,6 @@ impl backbone_orm::EntityRepoMeta for Interview {
 /// System fields (id, metadata, timestamps) are auto-initialized.
 #[derive(Debug, Clone, Default)]
 pub struct InterviewBuilder {
-    company_id: Option<Uuid>,
     application_id: Option<Uuid>,
     interviewer_id: Option<Uuid>,
     scheduled_at: Option<DateTime<Utc>>,
@@ -292,12 +282,6 @@ pub struct InterviewBuilder {
 }
 
 impl InterviewBuilder {
-    /// Set the company_id field (required)
-    pub fn company_id(mut self, value: Uuid) -> Self {
-        self.company_id = Some(value);
-        self
-    }
-
     /// Set the application_id field (required)
     pub fn application_id(mut self, value: Uuid) -> Self {
         self.application_id = Some(value);
@@ -350,14 +334,12 @@ impl InterviewBuilder {
     ///
     /// Returns Err if any required field without a default is missing.
     pub fn build(self) -> Result<Interview, String> {
-        let company_id = self.company_id.ok_or_else(|| "company_id is required".to_string())?;
         let application_id = self.application_id.ok_or_else(|| "application_id is required".to_string())?;
         let interviewer_id = self.interviewer_id.ok_or_else(|| "interviewer_id is required".to_string())?;
         let scheduled_at = self.scheduled_at.ok_or_else(|| "scheduled_at is required".to_string())?;
 
         Ok(Interview {
             id: Uuid::new_v4(),
-            company_id,
             application_id,
             interviewer_id,
             scheduled_at,

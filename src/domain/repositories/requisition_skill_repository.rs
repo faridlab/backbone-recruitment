@@ -44,7 +44,6 @@ pub struct RequisitionSkillPaginatedResult {
 /// Filter parameters for list queries
 #[derive(Debug, Clone, Default)]
 pub struct RequisitionSkillFilter {
-    pub company_id: Option<Uuid>,
     pub requisition_id: Option<Uuid>,
     pub skill_id: Option<Uuid>,
     pub required_proficiency: Option<ProficiencyLevel>,
@@ -53,7 +52,7 @@ pub struct RequisitionSkillFilter {
 impl RequisitionSkillFilter {
     /// Check if any filter is set
     pub fn has_filters(&self) -> bool {
-        self.company_id.is_some() || self.requisition_id.is_some() || self.skill_id.is_some() || self.required_proficiency.is_some()
+        self.requisition_id.is_some() || self.skill_id.is_some() || self.required_proficiency.is_some()
     }
 }
 

@@ -2963,14 +2963,10 @@ components:
       type: object
       required:
         - id
-        - company_id
         - first_name
         - metadata
       properties:
         id:
-          type: string
-          format: uuid
-        company_id:
           type: string
           format: uuid
         first_name:
@@ -3012,13 +3008,9 @@ components:
     CreateCandidateRequest:
       type: object
       required:
-        - company_id
         - first_name
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         first_name:
           type: string
         last_name:
@@ -3045,13 +3037,9 @@ components:
     UpdateCandidateRequest:
       type: object
       required:
-        - company_id
         - first_name
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         first_name:
           type: string
         last_name:
@@ -3078,9 +3066,6 @@ components:
     PatchCandidateRequest:
       type: object
       properties:
-        company_id:
-          type: string
-          format: uuid
         first_name:
           type: string
         last_name:
@@ -3118,7 +3103,6 @@ components:
       type: object
       required:
         - id
-        - company_id
         - application_id
         - interviewer_id
         - scheduled_at
@@ -3126,9 +3110,6 @@ components:
         - metadata
       properties:
         id:
-          type: string
-          format: uuid
-        company_id:
           type: string
           format: uuid
         application_id:
@@ -3175,16 +3156,12 @@ components:
     CreateInterviewRequest:
       type: object
       required:
-        - company_id
         - application_id
         - interviewer_id
         - scheduled_at
         - status
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3216,16 +3193,12 @@ components:
     UpdateInterviewRequest:
       type: object
       required:
-        - company_id
         - application_id
         - interviewer_id
         - scheduled_at
         - status
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3257,9 +3230,6 @@ components:
     PatchInterviewRequest:
       type: object
       properties:
-        company_id:
-          type: string
-          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3302,7 +3272,6 @@ components:
       type: object
       required:
         - id
-        - company_id
         - candidate_id
         - requisition_id
         - stage_id
@@ -3310,9 +3279,6 @@ components:
         - metadata
       properties:
         id:
-          type: string
-          format: uuid
-        company_id:
           type: string
           format: uuid
         candidate_id:
@@ -3365,16 +3331,12 @@ components:
     CreateJobApplicationRequest:
       type: object
       required:
-        - company_id
         - candidate_id
         - requisition_id
         - stage_id
         - applied_at
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         candidate_id:
           type: string
           format: uuid
@@ -3412,16 +3374,12 @@ components:
     UpdateJobApplicationRequest:
       type: object
       required:
-        - company_id
         - candidate_id
         - requisition_id
         - stage_id
         - applied_at
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         candidate_id:
           type: string
           format: uuid
@@ -3459,9 +3417,6 @@ components:
     PatchJobApplicationRequest:
       type: object
       properties:
-        company_id:
-          type: string
-          format: uuid
         candidate_id:
           type: string
           format: uuid
@@ -3510,15 +3465,11 @@ components:
       type: object
       required:
         - id
-        - company_id
         - application_id
         - status
         - metadata
       properties:
         id:
-          type: string
-          format: uuid
-        company_id:
           type: string
           format: uuid
         application_id:
@@ -3563,14 +3514,10 @@ components:
     CreateJobOfferRequest:
       type: object
       required:
-        - company_id
         - application_id
         - status
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3600,14 +3547,10 @@ components:
     UpdateJobOfferRequest:
       type: object
       required:
-        - company_id
         - application_id
         - status
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3637,9 +3580,6 @@ components:
     PatchJobOfferRequest:
       type: object
       properties:
-        company_id:
-          type: string
-          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3680,7 +3620,6 @@ components:
       type: object
       required:
         - id
-        - company_id
         - title
         - headcount
         - filled_headcount
@@ -3689,9 +3628,6 @@ components:
         - metadata
       properties:
         id:
-          type: string
-          format: uuid
-        company_id:
           type: string
           format: uuid
         department_id:
@@ -3744,7 +3680,6 @@ components:
     CreateJobRequisitionRequest:
       type: object
       required:
-        - company_id
         - title
         - headcount
         - filled_headcount
@@ -3752,9 +3687,6 @@ components:
         - opened_by
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         department_id:
           nullable: true
           type: string
@@ -3792,7 +3724,6 @@ components:
     UpdateJobRequisitionRequest:
       type: object
       required:
-        - company_id
         - title
         - headcount
         - filled_headcount
@@ -3800,9 +3731,6 @@ components:
         - opened_by
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         department_id:
           nullable: true
           type: string
@@ -3840,9 +3768,6 @@ components:
     PatchJobRequisitionRequest:
       type: object
       properties:
-        company_id:
-          type: string
-          format: uuid
         department_id:
           nullable: true
           type: string
@@ -3891,16 +3816,12 @@ components:
       type: object
       required:
         - id
-        - company_id
         - name
         - subject
         - body
         - metadata
       properties:
         id:
-          type: string
-          format: uuid
-        company_id:
           type: string
           format: uuid
         name:
@@ -3928,15 +3849,11 @@ components:
     CreateOfferLetterTemplateRequest:
       type: object
       required:
-        - company_id
         - name
         - subject
         - body
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         name:
           type: string
         subject:
@@ -3949,15 +3866,11 @@ components:
     UpdateOfferLetterTemplateRequest:
       type: object
       required:
-        - company_id
         - name
         - subject
         - body
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         name:
           type: string
         subject:
@@ -3970,9 +3883,6 @@ components:
     PatchOfferLetterTemplateRequest:
       type: object
       properties:
-        company_id:
-          type: string
-          format: uuid
         name:
           type: string
         subject:
@@ -3996,7 +3906,6 @@ components:
       type: object
       required:
         - id
-        - company_id
         - name
         - sequence
         - is_hired
@@ -4004,9 +3913,6 @@ components:
         - metadata
       properties:
         id:
-          type: string
-          format: uuid
-        company_id:
           type: string
           format: uuid
         name:
@@ -4040,16 +3946,12 @@ components:
     CreateRecruitmentStageRequest:
       type: object
       required:
-        - company_id
         - name
         - sequence
         - is_hired
         - folded
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         name:
           type: string
         sequence:
@@ -4068,16 +3970,12 @@ components:
     UpdateRecruitmentStageRequest:
       type: object
       required:
-        - company_id
         - name
         - sequence
         - is_hired
         - folded
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         name:
           type: string
         sequence:
@@ -4096,9 +3994,6 @@ components:
     PatchRecruitmentStageRequest:
       type: object
       properties:
-        company_id:
-          type: string
-          format: uuid
         name:
           type: string
         sequence:
@@ -4128,16 +4023,12 @@ components:
       type: object
       required:
         - id
-        - company_id
         - requisition_id
         - skill_id
         - required_proficiency
         - metadata
       properties:
         id:
-          type: string
-          format: uuid
-        company_id:
           type: string
           format: uuid
         requisition_id:
@@ -4167,15 +4058,11 @@ components:
     CreateRequisitionSkillRequest:
       type: object
       required:
-        - company_id
         - requisition_id
         - skill_id
         - required_proficiency
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         requisition_id:
           type: string
           format: uuid
@@ -4190,15 +4077,11 @@ components:
     UpdateRequisitionSkillRequest:
       type: object
       required:
-        - company_id
         - requisition_id
         - skill_id
         - required_proficiency
         - metadata
       properties:
-        company_id:
-          type: string
-          format: uuid
         requisition_id:
           type: string
           format: uuid
@@ -4213,9 +4096,6 @@ components:
     PatchRequisitionSkillRequest:
       type: object
       properties:
-        company_id:
-          type: string
-          format: uuid
         requisition_id:
           type: string
           format: uuid

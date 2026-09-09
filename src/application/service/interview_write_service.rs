@@ -1,9 +1,12 @@
 //! Interview write-service (hand-authored, user-owned): schedule / complete /
 //! cancel — plus the interviewer notification seam.
 //!
-//! Every verb takes the caller's `company` explicitly and binds it onto the
-//! transaction before any statement runs, so the path is correct under the
-//! strict company fence (row-level security).
+//! Every verb that opens its own transaction relays the ambient request scope
+//! (when one is bound) onto that transaction before any statement runs, so a
+//! deployment whose composing service installed the tenancy decorator's
+//! row-level fence sees only the caller's org-unit rows. Unfenced deployments
+//! have no ambient scope and the relay is skipped entirely — the module stays
+//! posture-agnostic.
 //!
 //! Scheduling can put an activity on the interviewer's plate through the
 //! [`ActivitySink`] port. Activities belong to login USERS, not employees, and
@@ -16,7 +19,7 @@
 
 use std::sync::Arc;
 
-use backbone_orm::company_scope;
+use backbone_orm::org_scope;
 use chrono::{DateTime, NaiveDate, Utc};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -28,7 +31,7 @@ use super::activity_port::{ActivityCommand, ActivitySink, UnwiredActivitySink};
 pub enum InterviewError {
     #[error("interview {0} not found")]
     NotFound(Uuid),
-    #[error("application {0} not found in company")]
+    #[error("application {0} not found")]
     ApplicationNotFound(Uuid),
     #[error("application {0} was refused — no interviews may be scheduled")]
     ApplicationRefused(Uuid),
@@ -71,7 +74,6 @@ impl InterviewError {
 /// Input for `schedule`.
 #[derive(Debug, Clone)]
 pub struct NewInterview {
-    pub company_id: Uuid,
     pub application_id: Uuid,
     pub interviewer_id: Uuid,
     pub scheduled_at: DateTime<Utc>,
@@ -101,17 +103,19 @@ impl InterviewWriteService {
 
     /// Schedule an interview round for an ongoing application.
     pub async fn schedule(&self, input: NewInterview) -> Result<Uuid, InterviewError> {
-        let company = input.company_id;
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
 
-        // The application must exist in this company and still be ongoing.
+        // The application must exist (under a decorated deployment the org
+        // fence limits the probe to the caller's own rows) and still be ongoing.
         let row = sqlx::query(
-            "SELECT refused_at FROM recruitment.job_applications \
-             WHERE id = $1 AND company_id = $2",
+            "SELECT refused_at FROM recruitment.job_applications WHERE id = $1",
         )
         .bind(input.application_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
         match row {
@@ -136,14 +140,13 @@ impl InterviewWriteService {
         let id = Uuid::new_v4();
         sqlx::query(
             r#"INSERT INTO recruitment.interviews
-                   (id, company_id, application_id, interviewer_id, scheduled_at,
+                   (id, application_id, interviewer_id, scheduled_at,
                     round, interview_format, status, metadata)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, 'scheduled',
+               VALUES ($1, $2, $3, $4, $5, $6, 'scheduled',
                        '{"created_at":null,"updated_at":null,"deleted_at":null,
                          "created_by":null,"updated_by":null,"deleted_by":null}'::jsonb)"#,
         )
         .bind(id)
-        .bind(company)
         .bind(input.application_id)
         .bind(input.interviewer_id)
         .bind(input.scheduled_at)
@@ -177,20 +180,21 @@ impl InterviewWriteService {
     /// Scheduled → completed, recording the outcome.
     pub async fn complete(
         &self,
-        company: Uuid,
         interview_id: Uuid,
         rating: Option<i32>,
         feedback: Option<String>,
     ) -> Result<(), InterviewError> {
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
 
         let status: Option<String> = sqlx::query_scalar(
-            "SELECT status::text FROM recruitment.interviews WHERE id = $1 AND company_id = $2 \
-             FOR UPDATE",
+            "SELECT status::text FROM recruitment.interviews WHERE id = $1 FOR UPDATE",
         )
         .bind(interview_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
         match status.as_deref() {
@@ -221,16 +225,18 @@ impl InterviewWriteService {
 
     /// Scheduled → cancelled (a completed interview is history; it does not
     /// un-happen).
-    pub async fn cancel(&self, company: Uuid, interview_id: Uuid) -> Result<(), InterviewError> {
+    pub async fn cancel(&self, interview_id: Uuid) -> Result<(), InterviewError> {
         let mut tx = self.pool.begin().await?;
-        company_scope::bind_company_on(&mut tx, company).await?;
+        // Relay the ambient request scope, when one is bound, onto this transaction:
+        // a decorated deployment's row fence reads it; an unfenced one skips this.
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
 
         let status: Option<String> = sqlx::query_scalar(
-            "SELECT status::text FROM recruitment.interviews WHERE id = $1 AND company_id = $2 \
-             FOR UPDATE",
+            "SELECT status::text FROM recruitment.interviews WHERE id = $1 FOR UPDATE",
         )
         .bind(interview_id)
-        .bind(company)
         .fetch_optional(&mut *tx)
         .await?;
         match status.as_deref() {

@@ -6,7 +6,6 @@
 
 -- INSERT INTO recruitment.requisition_skills (
 --     id,
---     company_id,
 --     requisition_id,
 --     skill_id,
 --     required_proficiency,
