@@ -1,6 +1,6 @@
 [package]
 name = "backbone-recruitment"
-version = "0.2.5"
+version = "0.3.0"
 edition = "2021"
 description = "Minimal Backbone Framework module skeleton"
 
@@ -52,6 +52,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Validation
 validator = { version = "0.16", features = ["derive"] }
+
+# OpenAPI schema derives — the generator emits `use utoipa::ToSchema;` in entities and
+# DTOs, so the crate ships the dependency unconditionally and the `openapi` feature
+# always builds.
+utoipa = "5"
 
 # Error handling
 anyhow = "1.0"
