@@ -7,7 +7,7 @@ info:
     This API provides 11 standard CRUD endpoints for each model.
 
 servers:
-  - url: http://localhost:3000
+  - url: /
     description: Development server
 
 tags:
@@ -29,7 +29,7 @@ tags:
     description: RequisitionSkill management endpoints
 
 paths:
-  /api/v1/candidates:
+  /api/v1/recruitment/candidates:
     get:
       tags:
         - Candidates
@@ -75,7 +75,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/candidates/{id}:
+  /api/v1/recruitment/candidates/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
 
@@ -147,7 +147,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/candidates/bulk:
+  /api/v1/recruitment/candidates/bulk:
     post:
       tags:
         - Candidates
@@ -239,7 +239,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/candidates/upsert:
+  /api/v1/recruitment/candidates/upsert:
     post:
       tags:
         - Candidates
@@ -269,7 +269,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Candidate'
 
-  /api/v1/candidates/trash:
+  /api/v1/recruitment/candidates/trash:
     get:
       tags:
         - Candidates
@@ -286,7 +286,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/CandidateList'
 
-  /api/v1/candidates/{id}/restore:
+  /api/v1/recruitment/candidates/{id}/restore:
     parameters:
       - $ref: '#/components/parameters/IdParam'
     post:
@@ -304,7 +304,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/candidates/empty:
+  /api/v1/recruitment/candidates/empty:
     delete:
       tags:
         - Candidates
@@ -321,7 +321,7 @@ paths:
                   deleted_count:
                     type: integer
 
-  /api/v1/candidates/delete/bulk:
+  /api/v1/recruitment/candidates/delete/bulk:
     post:
       tags:
         - Candidates
@@ -341,7 +341,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/candidates/restore/bulk:
+  /api/v1/recruitment/candidates/restore/bulk:
     post:
       tags:
         - Candidates
@@ -359,7 +359,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/candidates/restore/all:
+  /api/v1/recruitment/candidates/restore/all:
     post:
       tags:
         - Candidates
@@ -375,7 +375,7 @@ paths:
                 properties:
                   restored: { type: integer }
 
-  /api/v1/candidates/trash/bulk:
+  /api/v1/recruitment/candidates/trash/bulk:
     delete:
       tags:
         - Candidates
@@ -395,7 +395,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/interviews:
+  /api/v1/recruitment/interviews:
     get:
       tags:
         - Interviews
@@ -441,7 +441,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/interviews/{id}:
+  /api/v1/recruitment/interviews/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
 
@@ -513,7 +513,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/interviews/bulk:
+  /api/v1/recruitment/interviews/bulk:
     post:
       tags:
         - Interviews
@@ -605,7 +605,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/interviews/upsert:
+  /api/v1/recruitment/interviews/upsert:
     post:
       tags:
         - Interviews
@@ -635,7 +635,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Interview'
 
-  /api/v1/interviews/trash:
+  /api/v1/recruitment/interviews/trash:
     get:
       tags:
         - Interviews
@@ -652,7 +652,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/InterviewList'
 
-  /api/v1/interviews/{id}/restore:
+  /api/v1/recruitment/interviews/{id}/restore:
     parameters:
       - $ref: '#/components/parameters/IdParam'
     post:
@@ -670,7 +670,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/interviews/empty:
+  /api/v1/recruitment/interviews/empty:
     delete:
       tags:
         - Interviews
@@ -687,7 +687,7 @@ paths:
                   deleted_count:
                     type: integer
 
-  /api/v1/interviews/delete/bulk:
+  /api/v1/recruitment/interviews/delete/bulk:
     post:
       tags:
         - Interviews
@@ -707,7 +707,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/interviews/restore/bulk:
+  /api/v1/recruitment/interviews/restore/bulk:
     post:
       tags:
         - Interviews
@@ -725,7 +725,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/interviews/restore/all:
+  /api/v1/recruitment/interviews/restore/all:
     post:
       tags:
         - Interviews
@@ -741,7 +741,7 @@ paths:
                 properties:
                   restored: { type: integer }
 
-  /api/v1/interviews/trash/bulk:
+  /api/v1/recruitment/interviews/trash/bulk:
     delete:
       tags:
         - Interviews
@@ -761,7 +761,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_applications:
+  /api/v1/recruitment/job_applications:
     get:
       tags:
         - JobApplications
@@ -807,7 +807,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/job_applications/{id}:
+  /api/v1/recruitment/job_applications/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
 
@@ -879,7 +879,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/job_applications/bulk:
+  /api/v1/recruitment/job_applications/bulk:
     post:
       tags:
         - JobApplications
@@ -971,7 +971,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_applications/upsert:
+  /api/v1/recruitment/job_applications/upsert:
     post:
       tags:
         - JobApplications
@@ -1001,7 +1001,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobApplication'
 
-  /api/v1/job_applications/trash:
+  /api/v1/recruitment/job_applications/trash:
     get:
       tags:
         - JobApplications
@@ -1018,7 +1018,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobApplicationList'
 
-  /api/v1/job_applications/{id}/restore:
+  /api/v1/recruitment/job_applications/{id}/restore:
     parameters:
       - $ref: '#/components/parameters/IdParam'
     post:
@@ -1036,7 +1036,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/job_applications/empty:
+  /api/v1/recruitment/job_applications/empty:
     delete:
       tags:
         - JobApplications
@@ -1053,7 +1053,7 @@ paths:
                   deleted_count:
                     type: integer
 
-  /api/v1/job_applications/delete/bulk:
+  /api/v1/recruitment/job_applications/delete/bulk:
     post:
       tags:
         - JobApplications
@@ -1073,7 +1073,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_applications/restore/bulk:
+  /api/v1/recruitment/job_applications/restore/bulk:
     post:
       tags:
         - JobApplications
@@ -1091,7 +1091,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_applications/restore/all:
+  /api/v1/recruitment/job_applications/restore/all:
     post:
       tags:
         - JobApplications
@@ -1107,7 +1107,7 @@ paths:
                 properties:
                   restored: { type: integer }
 
-  /api/v1/job_applications/trash/bulk:
+  /api/v1/recruitment/job_applications/trash/bulk:
     delete:
       tags:
         - JobApplications
@@ -1127,7 +1127,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_offers:
+  /api/v1/recruitment/job_offers:
     get:
       tags:
         - JobOffers
@@ -1173,7 +1173,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/job_offers/{id}:
+  /api/v1/recruitment/job_offers/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
 
@@ -1245,7 +1245,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/job_offers/bulk:
+  /api/v1/recruitment/job_offers/bulk:
     post:
       tags:
         - JobOffers
@@ -1337,7 +1337,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_offers/upsert:
+  /api/v1/recruitment/job_offers/upsert:
     post:
       tags:
         - JobOffers
@@ -1367,7 +1367,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobOffer'
 
-  /api/v1/job_offers/trash:
+  /api/v1/recruitment/job_offers/trash:
     get:
       tags:
         - JobOffers
@@ -1384,7 +1384,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobOfferList'
 
-  /api/v1/job_offers/{id}/restore:
+  /api/v1/recruitment/job_offers/{id}/restore:
     parameters:
       - $ref: '#/components/parameters/IdParam'
     post:
@@ -1402,7 +1402,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/job_offers/empty:
+  /api/v1/recruitment/job_offers/empty:
     delete:
       tags:
         - JobOffers
@@ -1419,7 +1419,7 @@ paths:
                   deleted_count:
                     type: integer
 
-  /api/v1/job_offers/delete/bulk:
+  /api/v1/recruitment/job_offers/delete/bulk:
     post:
       tags:
         - JobOffers
@@ -1439,7 +1439,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_offers/restore/bulk:
+  /api/v1/recruitment/job_offers/restore/bulk:
     post:
       tags:
         - JobOffers
@@ -1457,7 +1457,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_offers/restore/all:
+  /api/v1/recruitment/job_offers/restore/all:
     post:
       tags:
         - JobOffers
@@ -1473,7 +1473,7 @@ paths:
                 properties:
                   restored: { type: integer }
 
-  /api/v1/job_offers/trash/bulk:
+  /api/v1/recruitment/job_offers/trash/bulk:
     delete:
       tags:
         - JobOffers
@@ -1493,7 +1493,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_requisitions:
+  /api/v1/recruitment/job_requisitions:
     get:
       tags:
         - JobRequisitions
@@ -1539,7 +1539,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/job_requisitions/{id}:
+  /api/v1/recruitment/job_requisitions/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
 
@@ -1611,7 +1611,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/job_requisitions/bulk:
+  /api/v1/recruitment/job_requisitions/bulk:
     post:
       tags:
         - JobRequisitions
@@ -1703,7 +1703,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_requisitions/upsert:
+  /api/v1/recruitment/job_requisitions/upsert:
     post:
       tags:
         - JobRequisitions
@@ -1733,7 +1733,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobRequisition'
 
-  /api/v1/job_requisitions/trash:
+  /api/v1/recruitment/job_requisitions/trash:
     get:
       tags:
         - JobRequisitions
@@ -1750,7 +1750,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/JobRequisitionList'
 
-  /api/v1/job_requisitions/{id}/restore:
+  /api/v1/recruitment/job_requisitions/{id}/restore:
     parameters:
       - $ref: '#/components/parameters/IdParam'
     post:
@@ -1768,7 +1768,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/job_requisitions/empty:
+  /api/v1/recruitment/job_requisitions/empty:
     delete:
       tags:
         - JobRequisitions
@@ -1785,7 +1785,7 @@ paths:
                   deleted_count:
                     type: integer
 
-  /api/v1/job_requisitions/delete/bulk:
+  /api/v1/recruitment/job_requisitions/delete/bulk:
     post:
       tags:
         - JobRequisitions
@@ -1805,7 +1805,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_requisitions/restore/bulk:
+  /api/v1/recruitment/job_requisitions/restore/bulk:
     post:
       tags:
         - JobRequisitions
@@ -1823,7 +1823,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/job_requisitions/restore/all:
+  /api/v1/recruitment/job_requisitions/restore/all:
     post:
       tags:
         - JobRequisitions
@@ -1839,7 +1839,7 @@ paths:
                 properties:
                   restored: { type: integer }
 
-  /api/v1/job_requisitions/trash/bulk:
+  /api/v1/recruitment/job_requisitions/trash/bulk:
     delete:
       tags:
         - JobRequisitions
@@ -1859,7 +1859,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/offer_letter_templates:
+  /api/v1/recruitment/offer_letter_templates:
     get:
       tags:
         - OfferLetterTemplates
@@ -1905,7 +1905,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/offer_letter_templates/{id}:
+  /api/v1/recruitment/offer_letter_templates/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
 
@@ -1977,7 +1977,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/offer_letter_templates/bulk:
+  /api/v1/recruitment/offer_letter_templates/bulk:
     post:
       tags:
         - OfferLetterTemplates
@@ -2069,7 +2069,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/offer_letter_templates/upsert:
+  /api/v1/recruitment/offer_letter_templates/upsert:
     post:
       tags:
         - OfferLetterTemplates
@@ -2099,7 +2099,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/OfferLetterTemplate'
 
-  /api/v1/offer_letter_templates/trash:
+  /api/v1/recruitment/offer_letter_templates/trash:
     get:
       tags:
         - OfferLetterTemplates
@@ -2116,7 +2116,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/OfferLetterTemplateList'
 
-  /api/v1/offer_letter_templates/{id}/restore:
+  /api/v1/recruitment/offer_letter_templates/{id}/restore:
     parameters:
       - $ref: '#/components/parameters/IdParam'
     post:
@@ -2134,7 +2134,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/offer_letter_templates/empty:
+  /api/v1/recruitment/offer_letter_templates/empty:
     delete:
       tags:
         - OfferLetterTemplates
@@ -2151,7 +2151,7 @@ paths:
                   deleted_count:
                     type: integer
 
-  /api/v1/offer_letter_templates/delete/bulk:
+  /api/v1/recruitment/offer_letter_templates/delete/bulk:
     post:
       tags:
         - OfferLetterTemplates
@@ -2171,7 +2171,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/offer_letter_templates/restore/bulk:
+  /api/v1/recruitment/offer_letter_templates/restore/bulk:
     post:
       tags:
         - OfferLetterTemplates
@@ -2189,7 +2189,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/offer_letter_templates/restore/all:
+  /api/v1/recruitment/offer_letter_templates/restore/all:
     post:
       tags:
         - OfferLetterTemplates
@@ -2205,7 +2205,7 @@ paths:
                 properties:
                   restored: { type: integer }
 
-  /api/v1/offer_letter_templates/trash/bulk:
+  /api/v1/recruitment/offer_letter_templates/trash/bulk:
     delete:
       tags:
         - OfferLetterTemplates
@@ -2225,7 +2225,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/recruitment_stages:
+  /api/v1/recruitment/recruitment_stages:
     get:
       tags:
         - RecruitmentStages
@@ -2271,7 +2271,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/recruitment_stages/{id}:
+  /api/v1/recruitment/recruitment_stages/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
 
@@ -2343,7 +2343,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/recruitment_stages/bulk:
+  /api/v1/recruitment/recruitment_stages/bulk:
     post:
       tags:
         - RecruitmentStages
@@ -2435,7 +2435,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/recruitment_stages/upsert:
+  /api/v1/recruitment/recruitment_stages/upsert:
     post:
       tags:
         - RecruitmentStages
@@ -2465,7 +2465,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RecruitmentStage'
 
-  /api/v1/recruitment_stages/trash:
+  /api/v1/recruitment/recruitment_stages/trash:
     get:
       tags:
         - RecruitmentStages
@@ -2482,7 +2482,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RecruitmentStageList'
 
-  /api/v1/recruitment_stages/{id}/restore:
+  /api/v1/recruitment/recruitment_stages/{id}/restore:
     parameters:
       - $ref: '#/components/parameters/IdParam'
     post:
@@ -2500,7 +2500,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/recruitment_stages/empty:
+  /api/v1/recruitment/recruitment_stages/empty:
     delete:
       tags:
         - RecruitmentStages
@@ -2517,7 +2517,7 @@ paths:
                   deleted_count:
                     type: integer
 
-  /api/v1/recruitment_stages/delete/bulk:
+  /api/v1/recruitment/recruitment_stages/delete/bulk:
     post:
       tags:
         - RecruitmentStages
@@ -2537,7 +2537,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/recruitment_stages/restore/bulk:
+  /api/v1/recruitment/recruitment_stages/restore/bulk:
     post:
       tags:
         - RecruitmentStages
@@ -2555,7 +2555,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/recruitment_stages/restore/all:
+  /api/v1/recruitment/recruitment_stages/restore/all:
     post:
       tags:
         - RecruitmentStages
@@ -2571,7 +2571,7 @@ paths:
                 properties:
                   restored: { type: integer }
 
-  /api/v1/recruitment_stages/trash/bulk:
+  /api/v1/recruitment/recruitment_stages/trash/bulk:
     delete:
       tags:
         - RecruitmentStages
@@ -2591,7 +2591,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/requisition_skills:
+  /api/v1/recruitment/requisition_skills:
     get:
       tags:
         - RequisitionSkills
@@ -2637,7 +2637,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/requisition_skills/{id}:
+  /api/v1/recruitment/requisition_skills/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
 
@@ -2709,7 +2709,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/requisition_skills/bulk:
+  /api/v1/recruitment/requisition_skills/bulk:
     post:
       tags:
         - RequisitionSkills
@@ -2801,7 +2801,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/requisition_skills/upsert:
+  /api/v1/recruitment/requisition_skills/upsert:
     post:
       tags:
         - RequisitionSkills
@@ -2831,7 +2831,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RequisitionSkill'
 
-  /api/v1/requisition_skills/trash:
+  /api/v1/recruitment/requisition_skills/trash:
     get:
       tags:
         - RequisitionSkills
@@ -2848,7 +2848,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RequisitionSkillList'
 
-  /api/v1/requisition_skills/{id}/restore:
+  /api/v1/recruitment/requisition_skills/{id}/restore:
     parameters:
       - $ref: '#/components/parameters/IdParam'
     post:
@@ -2866,7 +2866,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/requisition_skills/empty:
+  /api/v1/recruitment/requisition_skills/empty:
     delete:
       tags:
         - RequisitionSkills
@@ -2883,7 +2883,7 @@ paths:
                   deleted_count:
                     type: integer
 
-  /api/v1/requisition_skills/delete/bulk:
+  /api/v1/recruitment/requisition_skills/delete/bulk:
     post:
       tags:
         - RequisitionSkills
@@ -2903,7 +2903,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/requisition_skills/restore/bulk:
+  /api/v1/recruitment/requisition_skills/restore/bulk:
     post:
       tags:
         - RequisitionSkills
@@ -2921,7 +2921,7 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
-  /api/v1/requisition_skills/restore/all:
+  /api/v1/recruitment/requisition_skills/restore/all:
     post:
       tags:
         - RequisitionSkills
@@ -2937,7 +2937,7 @@ paths:
                 properties:
                   restored: { type: integer }
 
-  /api/v1/requisition_skills/trash/bulk:
+  /api/v1/recruitment/requisition_skills/trash/bulk:
     delete:
       tags:
         - RequisitionSkills
