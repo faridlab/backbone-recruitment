@@ -17,6 +17,11 @@ models:
         attributes: ["@id", "@default(uuid)"]
         description: "Unique offer id"
 
+      approval_request_id:
+        type: uuid?
+        attributes: ["@exclude_from_foreign_key_check"]
+        description: "The approvals-engine request vouching for this offer's extension; NULL = the direct verb"
+
       application_id:
         type: uuid
         attributes: ["@required", "@foreign_key(JobApplication.id)"]

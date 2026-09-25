@@ -27,6 +27,7 @@ pub mod activity_port;
 pub mod interview_write_service;
 pub mod job_application_write_service;
 pub mod job_offer_write_service;
+pub mod recruitment_approvals_port;
 pub mod letter_port;
 pub mod offer_letter_render;
 pub mod requisition_skill_write_service;

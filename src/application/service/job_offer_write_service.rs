@@ -68,6 +68,9 @@ pub enum OfferError {
     /// `hire` on an application whose stage is not flagged `is_hired`.
     #[error("application {application_id} is not in a hired stage — move it there first")]
     ApplicationNotHired { application_id: Uuid },
+    /// The approvals engine has not granted the offer's extension.
+    #[error("the offer's approval has not been granted by the engine")]
+    ApprovalNotGranted,
     /// `extend` on an application that was already refused.
     #[error("application {0} was refused — no offer may be extended")]
     ApplicationRefused(Uuid),
@@ -100,6 +103,7 @@ impl OfferError {
     /// Stable machine code for the HTTP surface.
     pub fn code(&self) -> &'static str {
         match self {
+            OfferError::ApprovalNotGranted => "approval_not_granted",
             OfferError::NotFound(_) => "offer_not_found",
             OfferError::ApplicationNotFound(_) => "application_not_found",
             OfferError::NotExtensible { .. } => "offer_not_extensible",
@@ -115,6 +119,7 @@ impl OfferError {
     }
     pub fn http_status(&self) -> u16 {
         match self {
+            OfferError::ApprovalNotGranted => 409,
             OfferError::NotFound(_) | OfferError::ApplicationNotFound(_) => 404,
             OfferError::ApplicationNotHired { .. } => 409,
             OfferError::NotExtensible { .. }
@@ -158,17 +163,33 @@ pub struct ExtendOptions {
 pub struct JobOfferWriteService {
     pool: PgPool,
     letters: Arc<dyn OfferLetterSink>,
+    approvals:
+        std::sync::RwLock<std::sync::Arc<dyn super::recruitment_approvals_port::RecruitmentFilingPort>>,
 }
 
 impl JobOfferWriteService {
     /// Unwired default — letters explicitly requested will fail closed.
     pub fn new(pool: PgPool) -> Self {
-        Self { pool, letters: Arc::new(UnwiredOfferLetterSink) }
+        Self { pool, letters: Arc::new(UnwiredOfferLetterSink),
+               approvals: std::sync::RwLock::new(std::sync::Arc::new(
+                   super::recruitment_approvals_port::UnwiredRecruitmentApprovals,
+               )) }
     }
 
     /// Bind a real letter adapter (the host app's mail seam).
     pub fn with_letter_sink(pool: PgPool, sink: Arc<dyn OfferLetterSink>) -> Self {
-        Self { pool, letters: sink }
+        Self { pool, letters: sink,
+               approvals: std::sync::RwLock::new(std::sync::Arc::new(
+                   super::recruitment_approvals_port::UnwiredRecruitmentApprovals,
+               )) }
+    }
+
+    /// Wire the approvals port (the composing service's adapter).
+    pub fn set_approvals(
+        &self,
+        port: std::sync::Arc<dyn super::recruitment_approvals_port::RecruitmentFilingPort>,
+    ) {
+        *self.approvals.write().expect("offer approvals lock poisoned") = port;
     }
 
     /// Create an offer in `draft` for an ongoing application. Offers only
@@ -219,6 +240,55 @@ impl JobOfferWriteService {
         .await?;
 
         tx.commit().await?;
+
+        // File into the engine when wired (#550): the extension waits for
+        // the verdict. An unwired deployment keeps the direct verb.
+        let linked: Option<(Uuid, Uuid, Option<Decimal>, Option<String>)> =
+            sqlx::query_as::<_, (Uuid, Uuid, Option<Decimal>, Option<String>)>(
+            r#"SELECT a.id, COALESCE(r.opened_by, a.candidate_id),
+                      o.proposed_salary, o.employment_type
+                 FROM recruitment.job_offers o
+                 JOIN recruitment.job_applications a ON a.id = o.application_id
+            LEFT JOIN recruitment.job_requisitions r ON r.id = a.requisition_id
+                WHERE o.id = $1"#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await?;
+        if let Some((application_id, filer, proposed_salary, employment_type)) = linked {
+            let port = self
+                .approvals
+                .read()
+                .expect("offer approvals lock poisoned")
+                .clone();
+            match port
+                .file_offer(&super::recruitment_approvals_port::OfferFiling {
+                    offer_id: id,
+                    application_id,
+                    employee_id: filer,
+                    proposed_salary,
+                    employment_type,
+                })
+                .await
+            {
+                Ok(request_id) => {
+                    let mut tx = self.pool.begin().await?;
+                    if let Some(scope) = org_scope::current_org_scope() {
+                        org_scope::bind_org_scope_on(&mut tx, &scope).await?;
+                    }
+                    sqlx::query(
+                        "UPDATE recruitment.job_offers SET approval_request_id = $2 WHERE id = $1",
+                    )
+                    .bind(id)
+                    .bind(request_id)
+                    .execute(&mut *tx)
+                    .await?;
+                    tx.commit().await?;
+                }
+                Err(super::recruitment_approvals_port::RecruitmentSeamError::Unwired) => {}
+                Err(_) => return Err(OfferError::ApprovalNotGranted),
+            }
+        }
         Ok(id)
     }
 
@@ -237,6 +307,34 @@ impl JobOfferWriteService {
         // `status::text` — the column is a Postgres enum (`offer_status`);
         // sqlx will not decode an enum column straight to a Rust `String`,
         // so cast here and compare strings below.
+        // The engine-gated lane (#550): an offer linked into the approvals
+        // engine extends ONLY on the engine's Approved verdict — read the
+        // link first; unwired/unknown fail closed like every other gate.
+        // fetch_optional → Option<Option<Uuid>> (row may be absent, column
+        // may be NULL); the double flatten lands on Option<Uuid>.
+        let linked: Option<uuid::Uuid> = sqlx::query_scalar::<_, Option<uuid::Uuid>>(
+            "SELECT approval_request_id FROM recruitment.job_offers WHERE id = $1",
+        )
+        .bind(offer_id)
+        .fetch_optional(&mut *tx)
+        .await?
+        .flatten();
+        // (outer: row present; inner: column non-null)
+        if let Some(request_id) = linked {
+            let port = self
+                .approvals
+                .read()
+                .expect("offer approvals lock poisoned")
+                .clone();
+            if !matches!(
+                port.status(request_id).await,
+                Ok(super::recruitment_approvals_port::RecruitmentVerdict::Approved)
+            ) {
+                tx.rollback().await?;
+                return Err(OfferError::ApprovalNotGranted);
+            }
+        }
+
         let row = sqlx::query(
             r#"SELECT o.application_id, o.proposed_salary, o.letter_template_id,
                       o.status::text AS status,
@@ -439,6 +537,7 @@ impl JobOfferWriteService {
             r#"SELECT c.first_name    AS first_name,
                       c.last_name      AS last_name,
                       c.email          AS email,
+                      a.candidate_id   AS candidate_id,
                       r.position_id    AS position_id,
                       r.department_id  AS department_id,
                       r.title          AS position_title,
@@ -461,6 +560,7 @@ impl JobOfferWriteService {
         let first_name: String = joined.try_get("first_name")?;
         let last_name: Option<String> = joined.try_get("last_name")?;
         let email: Option<String> = joined.try_get("email")?;
+        let candidate_id: Option<Uuid> = joined.try_get("candidate_id")?;
         let position_id: Option<Uuid> = joined.try_get("position_id")?;
         let department_id: Option<Uuid> = joined.try_get("department_id")?;
 
@@ -470,6 +570,7 @@ impl JobOfferWriteService {
             // round-trip safe across a replay.
             "offer_id": offer_id,
             "company_id": owning_company,
+            "candidate_id": candidate_id,
             "first_name": first_name,
             "last_name": last_name,
             "email": email,

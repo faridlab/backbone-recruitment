@@ -74,6 +74,63 @@ struct CreateApplicationBody {
     requisition_id: Uuid,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PublicApplyBody {
+    requisition_id: Uuid,
+    email: String,
+    first_name: String,
+    #[serde(default)]
+    last_name: Option<String>,
+    #[serde(default)]
+    phone: Option<String>,
+    /// Honeypot: a real applicant never fills it. Non-empty = spam.
+    #[serde(default)]
+    website: Option<String>,
+}
+
+/// The public intake (#559). Mounted on the module's guarded composer for
+/// composition, but the HOST mounts this specific path bare (no auth): the
+/// verb itself dedups the candidate by email and creates the application.
+/// The honeypot field answers 202 whatever it holds — a bot learns nothing.
+async fn public_apply(
+    State(svc): State<Arc<JobApplicationWriteService>>,
+    _org: Option<OrgContext>,
+    Json(b): Json<PublicApplyBody>,
+) -> axum::response::Response {
+    if b.website.as_deref().unwrap_or("").trim() != "" {
+        return (
+            axum::http::StatusCode::ACCEPTED,
+            Json(serde_json::json!({ "received": true })),
+        )
+            .into_response();
+    }
+    match svc
+        .public_apply(
+            &b.email,
+            &b.first_name,
+            b.last_name.as_deref(),
+            b.phone.as_deref(),
+            b.requisition_id,
+        )
+        .await
+    {
+        Ok((application_id, _candidate_id, created)) => (
+            StatusCode::CREATED,
+            Json(serde_json::json!({
+                "applicationId": application_id,
+                "candidateCreated": created,
+            })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(serde_json::json!({ "error": e.code(), "message": e.to_string() })),
+        )
+            .into_response(),
+    }
+}
+
 async fn create_application(
     State(svc): State<Arc<JobApplicationWriteService>>,
     _org: OrgContext,
@@ -387,6 +444,7 @@ fn create_recruitment_verb_routes(
 ) -> Router {
     let applications = Router::new()
         .route("/applications", post(create_application))
+        .route("/public/applications", post(public_apply))
         .route("/applications/:id/stage", post(move_stage))
         .route("/applications/:id/refuse", post(refuse_application))
         .route("/applications/:id/pipeline", get(application_pipeline))

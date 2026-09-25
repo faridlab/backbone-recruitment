@@ -38,6 +38,8 @@ use uuid::Uuid;
 pub enum ApplicationError {
     #[error("application {0} not found")]
     NotFound(Uuid),
+    #[error("{0}")]
+    InvalidInput(&'static str),
     #[error("candidate {0} not found")]
     CandidateNotFound(Uuid),
     #[error("requisition {0} not found")]
@@ -60,6 +62,7 @@ impl ApplicationError {
     /// Stable machine code for the HTTP surface.
     pub fn code(&self) -> &'static str {
         match self {
+            ApplicationError::InvalidInput(_) => "invalid_input",
             ApplicationError::NotFound(_) => "application_not_found",
             ApplicationError::CandidateNotFound(_) => "candidate_not_found",
             ApplicationError::RequisitionNotFound(_) => "requisition_not_found",
@@ -73,6 +76,7 @@ impl ApplicationError {
     }
     pub fn http_status(&self) -> u16 {
         match self {
+            ApplicationError::InvalidInput(_) => 422,
             ApplicationError::NotFound(_)
             | ApplicationError::CandidateNotFound(_)
             | ApplicationError::RequisitionNotFound(_)
@@ -128,6 +132,78 @@ impl JobApplicationWriteService {
     /// default pipeline to fall back on, so a deployment with no stages
     /// visible to the caller fails closed with
     /// [`ApplicationError::NoStagesConfigured`].
+    /// The public intake (#559): find-or-create the candidate by email
+    /// (duplicate detection — the same person never exists twice), then
+    /// create the application on the open requisition. Returns
+    /// (application_id, candidate_id, created_candidate).
+    ///
+    /// Runs on a WIDE-spine connection the caller binds: a public lane has
+    /// no org context, so the caller (the composing service's public route)
+    /// opens the fence for exactly this transaction and the requisition
+    /// lookup inside stays honest. The abuse controls (rate limit,
+    /// captcha seam) live at the composing service's public mount — the
+    /// module refuses nothing a public form could legitimately ask.
+    pub async fn public_apply(
+        &self,
+        email: &str,
+        first_name: &str,
+        last_name: Option<&str>,
+        phone: Option<&str>,
+        requisition_id: Uuid,
+    ) -> Result<(Uuid, Uuid, bool), ApplicationError> {
+        let email = email.trim().to_lowercase();
+        let first_name = first_name.trim();
+        if first_name.is_empty() || !email.contains('@') {
+            return Err(ApplicationError::InvalidInput(
+                "a name and an email address are required to apply",
+            ));
+        }
+
+        let mut tx = self.pool.begin().await?;
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
+        }
+
+        // Duplicate detection: one candidate per email, forever — a re-apply
+        // finds the person, never mints a second row.
+        let existing: Option<Uuid> = sqlx::query_scalar(
+            "SELECT id FROM recruitment.candidates WHERE lower(email) = $1 LIMIT 1",
+        )
+        .bind(&email)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let (candidate_id, created) = match existing {
+            Some(id) => (id, false),
+            None => {
+                let id = Uuid::new_v4();
+                sqlx::query(
+                    r#"INSERT INTO recruitment.candidates
+                           (id, first_name, last_name, email, phone)
+                       VALUES ($1, $2, $3, $4, NULLIF($5, ''))"#,
+                )
+                .bind(id)
+                .bind(first_name)
+                .bind(last_name.map(str::trim).filter(|s| !s.is_empty()))
+                .bind(&email)
+                .bind(phone.unwrap_or("").trim())
+                .execute(&mut *tx)
+                .await?;
+                (id, true)
+            }
+        };
+
+        // The application itself rides the validated create (open
+        // requisition, first stage, the works).
+        tx.commit().await?;
+        let application_id = self
+            .create_application(NewJobApplication {
+                candidate_id,
+                requisition_id,
+            })
+            .await?;
+        Ok((application_id, candidate_id, created))
+    }
+
     pub async fn create_application(
         &self,
         input: NewJobApplication,
