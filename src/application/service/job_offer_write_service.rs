@@ -243,6 +243,13 @@ impl JobOfferWriteService {
 
         // File into the engine when wired (#550): the extension waits for
         // the verdict. An unwired deployment keeps the direct verb.
+        // The filing facts read on a SCOPE-BOUND transaction — a raw pool
+        // read runs unfenced under the decorator's RLS and the just-written
+        // offer is invisible, silently skipping the filing.
+        let mut facts_tx = self.pool.begin().await?;
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut facts_tx, &scope).await?;
+        }
         let linked: Option<(Uuid, Uuid, Option<Decimal>, Option<String>)> =
             sqlx::query_as::<_, (Uuid, Uuid, Option<Decimal>, Option<String>)>(
             r#"SELECT a.id, COALESCE(r.opened_by, a.candidate_id),
@@ -253,8 +260,9 @@ impl JobOfferWriteService {
                 WHERE o.id = $1"#,
         )
         .bind(id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&mut *facts_tx)
         .await?;
+        facts_tx.commit().await?;
         if let Some((application_id, filer, proposed_salary, employment_type)) = linked {
             let port = self
                 .approvals
