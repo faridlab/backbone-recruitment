@@ -131,6 +131,58 @@ async fn public_apply(
     }
 }
 
+async fn open_requisition(
+    State(svc): State<Arc<crate::application::service::requisition_lifecycle::RequisitionLifecycleService>>,
+    _org: OrgContext,
+    Path(requisition_id): Path<Uuid>,
+) -> axum::response::Response {
+    match svc.file_open(requisition_id).await {
+        Ok(Some(request_id)) => (
+            StatusCode::CREATED,
+            Json(serde_json::json!({
+                "approvalRequestId": request_id,
+                "status": "pending",
+            })),
+        )
+            .into_response(),
+        // Unwired port: nothing to wait for — the caller confirms directly.
+        Ok(None) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "status": "untracked" })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::from_u16(e.http_status()).unwrap_or(StatusCode::CONFLICT),
+            Json(serde_json::json!({ "error": e.code(), "message": e.to_string() })),
+        )
+            .into_response(),
+    }
+}
+
+async fn confirm_open_requisition(
+    State(svc): State<Arc<crate::application::service::requisition_lifecycle::RequisitionLifecycleService>>,
+    _org: OrgContext,
+    Path(requisition_id): Path<Uuid>,
+) -> axum::response::Response {
+    match svc.confirm_open(requisition_id).await {
+        Ok(true) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "status": "open" })),
+        )
+            .into_response(),
+        Ok(false) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "status": "open", "already": true })),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::from_u16(e.http_status()).unwrap_or(StatusCode::CONFLICT),
+            Json(serde_json::json!({ "error": e.code(), "message": e.to_string() })),
+        )
+            .into_response(),
+    }
+}
+
 async fn create_application(
     State(svc): State<Arc<JobApplicationWriteService>>,
     _org: OrgContext,
@@ -441,7 +493,15 @@ fn create_recruitment_verb_routes(
     offers: Arc<JobOfferWriteService>,
     interviews: Arc<InterviewWriteService>,
     skills: Arc<RequisitionSkillWriteService>,
+    requisition_gate_svc: Arc<
+        crate::application::service::requisition_lifecycle::RequisitionLifecycleService,
+    >,
 ) -> Router {
+    let requisition_gate = Router::new()
+        .route("/requisitions/:id/open", post(open_requisition))
+        .route("/requisitions/:id/confirm-open", post(confirm_open_requisition))
+        .with_state(requisition_gate_svc);
+
     let applications = Router::new()
         .route("/applications", post(create_application))
         .route("/public/applications", post(public_apply))
@@ -471,7 +531,12 @@ fn create_recruitment_verb_routes(
         )
         .with_state(skills);
 
-    Router::new().merge(applications).merge(offers).merge(interviews).merge(skills)
+    Router::new()
+        .merge(applications)
+        .merge(offers)
+        .merge(interviews)
+        .merge(skills)
+        .merge(requisition_gate)
 }
 
 /// Mount the recruitment module with write paths locked to validated verbs.
@@ -505,6 +570,7 @@ pub fn create_guarded_recruitment_routes(m: &RecruitmentModule) -> Router {
             m.job_offer_write_service.clone(),
             m.interview_write_service.clone(),
             m.requisition_skill_write_service.clone(),
+            m.requisition_lifecycle.clone(),
         ))
 }
 

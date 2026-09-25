@@ -79,6 +79,10 @@ pub struct RecruitmentModule {
     /// - requisition skills: set / list, validated against the learning module's skills.
     pub job_offer_write_service: Arc<application::service::JobOfferWriteService>,
     pub job_application_write_service: Arc<application::service::JobApplicationWriteService>,
+    /// The requisition open lifecycle (engine-gated draft→open) —
+    /// user-owned, not schema-derived.
+    pub requisition_lifecycle:
+        Arc<application::service::requisition_lifecycle::RequisitionLifecycleService>,
     pub interview_write_service: Arc<application::service::InterviewWriteService>,
     pub requisition_skill_write_service: Arc<application::service::RequisitionSkillWriteService>,
     // END CUSTOM
@@ -242,6 +246,11 @@ impl RecruitmentModuleBuilder {
 
         // RecruitmentStage service
         let recruitment_stage_repository = Arc::new(RecruitmentStageRepository::new(db_pool.clone()));
+        let requisition_lifecycle = Arc::new(
+            application::service::requisition_lifecycle::RequisitionLifecycleService::new(
+                db_pool.clone(),
+            ),
+        );
         let recruitment_stage_service = Arc::new(RecruitmentStageService::with_repository(recruitment_stage_repository.clone()));
 
         // RequisitionSkill service
@@ -279,6 +288,7 @@ impl RecruitmentModuleBuilder {
             // <<< CUSTOM
             job_offer_write_service,
             job_application_write_service,
+            requisition_lifecycle,
             interview_write_service,
             requisition_skill_write_service,
             // END CUSTOM

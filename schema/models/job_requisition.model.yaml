@@ -53,6 +53,11 @@ models:
         lifecycle: hand_set
         description: "Lifecycle status (hand-set by the open/close verbs)"
 
+      approval_request_id:
+        type: uuid?
+        attributes: ["@exclude_from_foreign_key_check"]
+        description: "The approvals-engine request vouching for the open transition; NULL = the direct lane"
+
       opened_by:
         type: uuid
         attributes: ["@required", "@exclude_from_foreign_key_check"]
