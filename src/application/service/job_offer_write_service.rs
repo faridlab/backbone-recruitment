@@ -173,6 +173,12 @@ pub struct JobOfferWriteService {
 }
 
 impl JobOfferWriteService {
+    /// The database this verb runs on: the composer's request pool when the
+    /// tenant router installed one, else the composed pool.
+    fn rpool(&self) -> sqlx::PgPool {
+        crate::request_pool::current().unwrap_or_else(|| self.pool.clone())
+    }
+
     /// Unwired default — letters explicitly requested will fail closed.
     pub fn new(pool: PgPool) -> Self {
         Self { pool, letters: Arc::new(UnwiredOfferLetterSink),
@@ -202,7 +208,7 @@ impl JobOfferWriteService {
     /// offers precisely so no path can set `status` directly and sidestep
     /// [`JobOfferWriteService::hire`]'s atomic accept+emit.
     pub async fn create_draft(&self, input: NewJobOffer) -> Result<Uuid, OfferError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {
@@ -251,7 +257,7 @@ impl JobOfferWriteService {
         // The filing facts read on a SCOPE-BOUND transaction — a raw pool
         // read runs unfenced under the decorator's RLS and the just-written
         // offer is invisible, silently skipping the filing.
-        let mut facts_tx = self.pool.begin().await?;
+        let mut facts_tx = self.rpool().begin().await?;
         if let Some(scope) = org_scope::current_org_scope() {
             org_scope::bind_org_scope_on(&mut facts_tx, &scope).await?;
         }
@@ -285,7 +291,7 @@ impl JobOfferWriteService {
                 .await
             {
                 Ok(request_id) => {
-                    let mut tx = self.pool.begin().await?;
+                    let mut tx = self.rpool().begin().await?;
                     if let Some(scope) = org_scope::current_org_scope() {
                         org_scope::bind_org_scope_on(&mut tx, &scope).await?;
                     }
@@ -319,7 +325,7 @@ impl JobOfferWriteService {
         company_name: Option<String>,
         start_date: Option<chrono::NaiveDate>,
     ) -> Result<(String, String), OfferError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         if let Some(scope) = org_scope::current_org_scope() {
             org_scope::bind_org_scope_on(&mut tx, &scope).await?;
         }
@@ -376,7 +382,7 @@ impl JobOfferWriteService {
     }
 
     pub async fn extend(&self, offer_id: Uuid, opts: ExtendOptions) -> Result<bool, OfferError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {
@@ -544,7 +550,7 @@ impl JobOfferWriteService {
     /// ambient org scope's legacy company id; no bound scope is
     /// [`OfferError::OrgScopeRequired`].
     pub async fn hire(&self, offer_id: Uuid) -> Result<Option<Uuid>, OfferError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {
@@ -704,7 +710,7 @@ impl JobOfferWriteService {
         to: &'static str,
         from: &[&'static str],
     ) -> Result<(), OfferError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {

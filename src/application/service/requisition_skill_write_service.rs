@@ -64,6 +64,12 @@ pub struct RequisitionSkillWriteService {
 }
 
 impl RequisitionSkillWriteService {
+    /// The database this verb runs on: the composer's request pool when the
+    /// tenant router installed one, else the composed pool.
+    fn rpool(&self) -> sqlx::PgPool {
+        crate::request_pool::current().unwrap_or_else(|| self.pool.clone())
+    }
+
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -77,7 +83,7 @@ impl RequisitionSkillWriteService {
         requisition_id: Uuid,
         skills: Vec<SkillRequirement>,
     ) -> Result<(), RequisitionSkillError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {
@@ -151,7 +157,7 @@ impl RequisitionSkillWriteService {
         &self,
         requisition_id: Uuid,
     ) -> Result<Vec<(Uuid, Option<String>, String)>, RequisitionSkillError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {

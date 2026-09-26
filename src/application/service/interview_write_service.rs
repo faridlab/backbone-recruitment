@@ -91,6 +91,12 @@ pub struct InterviewWriteService {
 }
 
 impl InterviewWriteService {
+    /// The database this verb runs on: the composer's request pool when the
+    /// tenant router installed one, else the composed pool.
+    fn rpool(&self) -> sqlx::PgPool {
+        crate::request_pool::current().unwrap_or_else(|| self.pool.clone())
+    }
+
     /// Unwired default — explicitly requested notifications fail closed.
     pub fn new(pool: PgPool) -> Self {
         Self { pool, activities: Arc::new(UnwiredActivitySink) }
@@ -103,7 +109,7 @@ impl InterviewWriteService {
 
     /// Schedule an interview round for an ongoing application.
     pub async fn schedule(&self, input: NewInterview) -> Result<Uuid, InterviewError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {
@@ -184,7 +190,7 @@ impl InterviewWriteService {
         rating: Option<i32>,
         feedback: Option<String>,
     ) -> Result<(), InterviewError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {
@@ -226,7 +232,7 @@ impl InterviewWriteService {
     /// Scheduled → cancelled (a completed interview is history; it does not
     /// un-happen).
     pub async fn cancel(&self, interview_id: Uuid) -> Result<(), InterviewError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {

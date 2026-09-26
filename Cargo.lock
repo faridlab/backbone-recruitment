@@ -262,7 +262,7 @@ dependencies = [
 
 [[package]]
 name = "backbone-employee"
-version = "0.2.27"
+version = "0.2.29"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -343,7 +343,7 @@ dependencies = [
 
 [[package]]
 name = "backbone-recruitment"
-version = "0.3.19"
+version = "0.3.21"
 dependencies = [
  "anyhow",
  "async-trait",

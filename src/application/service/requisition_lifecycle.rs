@@ -65,6 +65,12 @@ impl From<super::recruitment_approvals_port::RecruitmentSeamError> for Requisiti
 }
 
 impl RequisitionLifecycleService {
+    /// The database this verb runs on: the composer's request pool when the
+    /// tenant router installed one, else the composed pool.
+    fn rpool(&self) -> sqlx::PgPool {
+        crate::request_pool::current().unwrap_or_else(|| self.pool.clone())
+    }
+
     pub fn new(pool: sqlx::PgPool) -> Self {
         Self {
             pool,
@@ -89,7 +95,7 @@ impl RequisitionLifecycleService {
         &self,
         requisition_id: Uuid,
     ) -> Result<Option<Uuid>, RequisitionError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         if let Some(scope) = backbone_orm::org_scope::current_org_scope() {
             backbone_orm::org_scope::bind_org_scope_on(&mut tx, &scope).await?;
         }
@@ -128,7 +134,7 @@ impl RequisitionLifecycleService {
             .await
         {
             Ok(request_id) => {
-                let mut tx = self.pool.begin().await?;
+                let mut tx = self.rpool().begin().await?;
                 if let Some(scope) = backbone_orm::org_scope::current_org_scope() {
                     backbone_orm::org_scope::bind_org_scope_on(&mut tx, &scope).await?;
                 }
@@ -152,7 +158,7 @@ impl RequisitionLifecycleService {
     /// (the same pull-based fail-closed posture every engine-gated verb
     /// uses). Returns false when already open (idempotent).
     pub async fn confirm_open(&self, requisition_id: Uuid) -> Result<bool, RequisitionError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         if let Some(scope) = backbone_orm::org_scope::current_org_scope() {
             backbone_orm::org_scope::bind_org_scope_on(&mut tx, &scope).await?;
         }

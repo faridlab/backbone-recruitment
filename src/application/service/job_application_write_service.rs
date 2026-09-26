@@ -123,6 +123,12 @@ pub struct JobApplicationWriteService {
 }
 
 impl JobApplicationWriteService {
+    /// The database this verb runs on: the composer's request pool when the
+    /// tenant router installed one, else the composed pool.
+    fn rpool(&self) -> sqlx::PgPool {
+        crate::request_pool::current().unwrap_or_else(|| self.pool.clone())
+    }
+
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -159,7 +165,7 @@ impl JobApplicationWriteService {
             ));
         }
 
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         if let Some(scope) = org_scope::current_org_scope() {
             org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
         }
@@ -208,7 +214,7 @@ impl JobApplicationWriteService {
         &self,
         input: NewJobApplication,
     ) -> Result<Uuid, ApplicationError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {
@@ -296,7 +302,7 @@ impl JobApplicationWriteService {
         application_id: Uuid,
         to_stage_id: Uuid,
     ) -> Result<bool, ApplicationError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {
@@ -421,7 +427,7 @@ impl JobApplicationWriteService {
         application_id: Uuid,
         reason: Option<String>,
     ) -> Result<(), ApplicationError> {
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
         // a decorated deployment's row fence reads it; an unfenced one skips this.
         if let Some(scope) = org_scope::current_org_scope() {
@@ -492,7 +498,7 @@ impl JobApplicationWriteService {
     ) -> Result<Option<PipelineStatus>, ApplicationError> {
         // Read inside a scoped transaction: under a decorated deployment an
         // unbound read would return zero rows regardless of the WHERE clause.
-        let mut tx = self.pool.begin().await?;
+        let mut tx = self.rpool().begin().await?;
         if let Some(scope) = org_scope::current_org_scope() {
             org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
         }
