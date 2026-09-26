@@ -297,6 +297,33 @@ struct ExtendBody {
     company_name: Option<String>,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PreviewLetterQuery {
+    #[serde(default)]
+    company_name: Option<String>,
+    #[serde(default)]
+    start_date: Option<NaiveDate>,
+}
+
+/// The letter preview (#610): the exact subject and body the extend verb
+/// would send, rendered from the offer's template. Sends nothing.
+async fn preview_offer_letter(
+    State(svc): State<Arc<JobOfferWriteService>>,
+    _org: OrgContext,
+    Path(offer_id): Path<Uuid>,
+    axum::extract::Query(q): axum::extract::Query<PreviewLetterQuery>,
+) -> axum::response::Response {
+    match svc.preview_letter(offer_id, q.company_name, q.start_date).await {
+        Ok((subject, body)) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "subject": subject, "body": body })),
+        )
+            .into_response(),
+        Err(e) => err_response(e.code(), e.http_status(), e.to_string()),
+    }
+}
+
 async fn extend_offer(
     State(svc): State<Arc<JobOfferWriteService>>,
     _org: OrgContext,
@@ -513,6 +540,7 @@ fn create_recruitment_verb_routes(
     let offers = Router::new()
         .route("/offers", post(create_offer))
         .route("/offers/:id/extend", post(extend_offer))
+        .route("/offers/:id/letter", get(preview_offer_letter))
         .route("/offers/:id/hire", post(hire_offer))
         .route("/offers/:id/decline", post(decline_offer))
         .route("/offers/:id/withdraw", post(withdraw_offer))

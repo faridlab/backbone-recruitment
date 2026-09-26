@@ -59,6 +59,9 @@ pub enum OfferError {
     /// No `JobOffer` exists for the given id visible to the caller.
     #[error("offer {0} not found")]
     NotFound(Uuid),
+    /// The operation refused on the offer's shape (no template, wrong state).
+    #[error("{0}")]
+    InvalidState(&'static str),
     /// `create_draft` on an application that does not exist.
     #[error("application {0} not found")]
     ApplicationNotFound(Uuid),
@@ -103,6 +106,7 @@ impl OfferError {
     /// Stable machine code for the HTTP surface.
     pub fn code(&self) -> &'static str {
         match self {
+            OfferError::InvalidState(_) => "offer_not_extensible",
             OfferError::ApprovalNotGranted => "approval_not_granted",
             OfferError::NotFound(_) => "offer_not_found",
             OfferError::ApplicationNotFound(_) => "application_not_found",
@@ -119,6 +123,7 @@ impl OfferError {
     }
     pub fn http_status(&self) -> u16 {
         match self {
+            OfferError::InvalidState(_) => 409,
             OfferError::ApprovalNotGranted => 409,
             OfferError::NotFound(_) | OfferError::ApplicationNotFound(_) => 404,
             OfferError::ApplicationNotHired { .. } => 409,
@@ -304,6 +309,72 @@ impl JobOfferWriteService {
     /// (`Ok(false)`). Guards: the linked application is not refused and its
     /// requisition is open. When the offer references a letter template the
     /// letter is rendered and sent through the [`OfferLetterSink`].
+    /// Render the offer letter WITHOUT extending (#610): the same
+    /// template, vars and renderer the extend verb uses, returned for the
+    /// caller to preview. Refuses when the offer carries no template or
+    /// the template is gone; never sends anything.
+    pub async fn preview_letter(
+        &self,
+        offer_id: Uuid,
+        company_name: Option<String>,
+        start_date: Option<chrono::NaiveDate>,
+    ) -> Result<(String, String), OfferError> {
+        let mut tx = self.pool.begin().await?;
+        if let Some(scope) = org_scope::current_org_scope() {
+            org_scope::bind_org_scope_on(&mut tx, &scope).await?;
+        }
+        let row = sqlx::query(
+            r#"SELECT o.letter_template_id, o.proposed_salary,
+                      c.first_name AS candidate_first_name,
+                      r.title AS position_title
+                 FROM recruitment.job_offers o
+                 JOIN recruitment.job_applications a ON a.id = o.application_id
+                 JOIN recruitment.candidates c      ON c.id = a.candidate_id
+            LEFT JOIN recruitment.job_requisitions r ON r.id = a.requisition_id
+                WHERE o.id = $1"#,
+        )
+        .bind(offer_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+        use sqlx::Row;
+        let row = match row {
+            Some(r) => r,
+            None => {
+                tx.rollback().await?;
+                return Err(OfferError::NotFound(offer_id));
+            }
+        };
+        let tid: Option<Uuid> = row.try_get("letter_template_id")?;
+        let Some(tid) = tid else {
+            tx.rollback().await?;
+            return Err(OfferError::InvalidState(
+                "the offer carries no letter template — nothing to preview",
+            ));
+        };
+        let template_row = sqlx::query(
+            "SELECT subject, body FROM recruitment.offer_letter_templates WHERE id = $1",
+        )
+        .bind(tid)
+        .fetch_one(&mut *tx)
+        .await?;
+        let subject: String = template_row.try_get("subject")?;
+        let body: String = template_row.try_get("body")?;
+        let candidate_first_name: String = row.try_get("candidate_first_name")?;
+        let position_title: String = row.try_get("position_title")?;
+        let proposed_salary: Option<Decimal> = row.try_get("proposed_salary")?;
+        tx.commit().await?;
+        let vars = serde_json::json!({
+            "candidate_first_name": candidate_first_name,
+            "position_title": position_title,
+            "proposed_salary": proposed_salary.map(|d| d.to_string()),
+            "company_name": company_name.unwrap_or_default(),
+            "start_date": start_date
+                .unwrap_or_else(|| Utc::now().date_naive())
+                .to_string(),
+        });
+        Ok((render(&subject, &vars), render(&body, &vars)))
+    }
+
     pub async fn extend(&self, offer_id: Uuid, opts: ExtendOptions) -> Result<bool, OfferError> {
         let mut tx = self.pool.begin().await?;
         // Relay the ambient request scope, when one is bound, onto this transaction:
