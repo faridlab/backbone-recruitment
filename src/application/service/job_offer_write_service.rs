@@ -305,7 +305,23 @@ impl JobOfferWriteService {
                     tx.commit().await?;
                 }
                 Err(super::recruitment_approvals_port::RecruitmentSeamError::Unwired) => {}
-                Err(_) => return Err(OfferError::ApprovalNotGranted),
+                // A WIRED port that fails takes the offer with it: a row
+                // committed with no approval request behind it is half-made
+                // (the extend gate refuses it, the screens show a draft
+                // nothing can advance). Compensating delete — same pool,
+                // same scope.
+                Err(_) => {
+                    let mut tx = self.rpool().begin().await?;
+                    if let Some(scope) = org_scope::current_org_scope() {
+                        org_scope::bind_org_scope_on(&mut tx, &scope).await?;
+                    }
+                    sqlx::query("DELETE FROM recruitment.job_offers WHERE id = $1")
+                        .bind(id)
+                        .execute(&mut *tx)
+                        .await?;
+                    tx.commit().await?;
+                    return Err(OfferError::ApprovalNotGranted);
+                }
             }
         }
         Ok(id)
