@@ -404,8 +404,15 @@ impl JobOfferWriteService {
         .fetch_optional(&mut *tx)
         .await?
         .flatten();
-        // (outer: row present; inner: column non-null)
-        if let Some(request_id) = linked {
+        // (outer: row present; inner: column non-null) — and the link MUST
+        // exist: an offer with NO approval request behind it (a failed or
+        // skipped filing) refuses here, fail-closed, instead of extending
+        // on row state alone.
+        let Some(request_id) = linked else {
+            tx.rollback().await?;
+            return Err(OfferError::ApprovalNotGranted);
+        };
+        {
             let port = self
                 .approvals
                 .read()
