@@ -17,8 +17,10 @@
 //! The test is hermetic about schema: it builds the minimal DDL the flow touches inline (the producer's
 //! SQL is schema-pinned to `recruitment.*`/`employee.*`, so the real module tables are exercised). The
 //! `recruitment.*` shapes carry no tenancy column (ADR-0029: org scoping is composition-installed);
-//! `employee.*` is an unstripped sibling and keeps `company_id`, which the consumer fills from the
-//! event payload. It SKIPS (not fails) when no DB is reachable, so `cargo test` stays green in any
+//! `employee.*` carries `org_unit_id` with the standard landing default that reads
+//! `app.acting_unit_id` — the consumer binds the payload's company scope on its transaction and the
+//! default places the row. When backbone-employee evolves its write, the inline DDL below must
+//! follow it. It SKIPS (not fails) when no DB is reachable, so `cargo test` stays green in any
 //! environment; set `DATABASE_URL` to run it for real.
 
 use backbone_messaging::{IntegrationEventEnvelope, IntegrationEventHandler};
@@ -39,7 +41,11 @@ use uuid::Uuid;
 /// tables (e.g. requisitions require a title) and the seeds would violate
 /// them. Credentials/host come from `DATABASE_URL` (local dev default
 /// otherwise); the database itself is always a private scratch DB.
-async fn connect() -> Option<PgPool> {
+/// `suffix` names a PRIVATE scratch database for the calling test
+/// (`recruitment_hire_flow_test_{suffix}`). One DB per test: the recreate at
+/// connect time can never drop another test's tables mid-flight, so serial
+/// and parallel runs behave identically.
+async fn connect(suffix: &str) -> Option<PgPool> {
     let url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/backbone_hr".into());
     let (prefix, _) = url.trim_end_matches('/').rsplit_once('/')?;
@@ -50,7 +56,7 @@ async fn connect() -> Option<PgPool> {
             return None;
         }
     };
-    let scratch = "recruitment_hire_flow_test";
+    let scratch = format!("recruitment_hire_flow_test_{suffix}");
     let _ = sqlx::query(&format!(r#"DROP DATABASE IF EXISTS "{scratch}" WITH (FORCE)"#))
         .execute(&admin)
         .await;
@@ -68,25 +74,10 @@ async fn connect() -> Option<PgPool> {
     }
 }
 
-/// Serialize the tests in this binary against each other. Two hazards make
-/// concurrency wrong here, and one guard fixes both: (1) `CREATE SCHEMA IF
-/// NOT EXISTS` (also inside `outbox::migrate`) can still raise a unique
-/// violation when two connections race the same schema name; (2) the setup
-/// TRUNCATEs the shared seed tables, which would wipe another test's
-/// mid-flight rows. Hold the returned guard for the WHOLE test body.
-async fn setup_locked(
-    pool: &PgPool,
-) -> sqlx::Result<tokio::sync::MutexGuard<'static, ()>> {
-    static SETUP_LOCK: std::sync::OnceLock<tokio::sync::Mutex<()>> =
-        std::sync::OnceLock::new();
-    let lock: &'static _ = SETUP_LOCK.get_or_init(|| tokio::sync::Mutex::new(()));
-    let guard = lock.lock().await;
-    setup(pool).await?;
-    Ok(guard)
-}
-
 /// Build the minimal schema the flow exercises. Idempotent (CREATE ... IF NOT EXISTS), so it is safe to
 /// run against a DB that already carries the full module migrations — the IF NOT EXISTS no-ops there.
+/// Each test runs it against its OWN scratch database ([`connect`]); when the employee consumer's
+/// write evolves, the inline `employee.*` DDL below must follow it.
 async fn setup(pool: &PgPool) -> sqlx::Result<()> {
     // Enum types the producer/consumer SQL depends on (ignore "already exists").
     for stmt in [
@@ -167,15 +158,25 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
     .execute(pool)
     .await?;
 
-    // ── employee.* (the consumer writes these; unstripped sibling — keeps company_id) ──────────
+    // ── employee.* (the consumer writes these) ─────────────────────────────────────────────────
+    // org_unit_id carries the landing default from the org-scope GUC, exactly as the real
+    // employee schema does after the company-tenancy strip: the consumer's INSERT names no
+    // tenancy column, binds the payload's company scope on its transaction, and the default
+    // places the row.
     sqlx::query(
         r#"CREATE TABLE IF NOT EXISTS employee.employees (
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-               company_id UUID NOT NULL,
+               org_unit_id UUID NOT NULL DEFAULT (NULLIF(current_setting('app.acting_unit_id', true), ''))::uuid,
                employee_number TEXT NOT NULL,
                first_name TEXT NOT NULL,
                last_name TEXT,
                email TEXT,
+               -- candidate_id / base_salary: the employee consumer's hire
+               -- INSERT writes them; when backbone-employee evolves its
+               -- write, this DDL must follow or the consumer fails at the
+               -- relay and the test says so loudly.
+               candidate_id UUID,
+               base_salary NUMERIC(18,2),
                metadata JSONB NOT NULL DEFAULT '{}'::jsonb
            )"#,
     )
@@ -184,7 +185,7 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
     sqlx::query(
         r#"CREATE TABLE IF NOT EXISTS employee.employments (
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-               company_id UUID NOT NULL,
+               org_unit_id UUID NOT NULL DEFAULT (NULLIF(current_setting('app.acting_unit_id', true), ''))::uuid,
                employee_id UUID NOT NULL,
                employment_status employment_status NOT NULL DEFAULT 'permanent',
                join_date DATE NOT NULL,
@@ -220,8 +221,9 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
 
 /// Seed a hire-able offer chain (candidate → requisition → application → offer in `extended`) and
 /// return the offer id + the seed data so assertions can reference it. `company_id` is minted only
-/// for the employee side: the consumer fills `employee.*`.company_id from the event payload, and
-/// the producer takes it from the org scope the test binds around `hire`.
+/// for the employee side: the producer stamps it into the event payload from the org scope the
+/// test binds around `hire`, and the consumer re-binds it as the acting unit that lands the
+/// `employee.*` rows through the org_unit_id default.
 async fn seed_hireable_offer(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
     let company_id = Uuid::new_v4();
     let candidate_id: Uuid = sqlx::query(
@@ -285,11 +287,11 @@ async fn seed_hireable_offer(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
 
 #[tokio::test]
 async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn std::error::Error>> {
-    let pool = match connect().await {
+    let pool = match connect("creates").await {
         Some(p) => p,
         None => return Ok(()),
     };
-    let _guard = setup_locked(&pool).await?;
+    setup(&pool).await?;
 
     let (company_id, offer_id, department_id, position_id) = seed_hireable_offer(&pool).await;
 
@@ -338,10 +340,15 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
                 causation_id: rec.causation_id.clone(),
                 payload: rec.payload.clone(),
             };
-            handler
-                .handle(envelope)
-                .await
-                .map_err(|e| backbone_outbox::OutboxError::Publish(format!("consumer: {e}")))
+            // Fail LOUD on a consumer error. `drain_once` deliberately
+            // swallows `OutboxError::Publish` (at-least-once: the row just
+            // retries), so mapping the handler's failure there would
+            // masquerade as "nothing to drain" and surface only as a
+            // confusing `published == 0` assert far from the cause.
+            match handler.handle(envelope).await {
+                Ok(()) => Ok(()),
+                Err(e) => panic!("recruitment.hired consumer failed: {e:?}"),
+            }
         }
     })
     .await?;
@@ -355,7 +362,7 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
     // ── 3. ASSERT: Employee + Employment created with the offer's data. ─────────────────────────
     let emp = sqlx::query(
         "SELECT id, employee_number, first_name, last_name, email
-         FROM employee.employees WHERE company_id=$1",
+         FROM employee.employees WHERE org_unit_id=$1",
     )
     .bind(company_id)
     .fetch_one(&pool)
@@ -375,7 +382,7 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
     );
 
     let emp_count: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM employee.employees WHERE company_id=$1",
+        "SELECT count(*) FROM employee.employees WHERE org_unit_id=$1",
     )
     .bind(company_id)
     .fetch_one(&pool)
@@ -409,7 +416,7 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
     handler2.handle(replay).await.expect("replay is Ok (a no-op)");
 
     let emp_count_after: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM employee.employees WHERE company_id=$1",
+        "SELECT count(*) FROM employee.employees WHERE org_unit_id=$1",
     )
     .bind(company_id)
     .fetch_one(&pool)
@@ -431,11 +438,11 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
 async fn hire_is_idempotent_at_the_producer_too() -> Result<(), Box<dyn std::error::Error>> {
     // Calling hire() twice on the same offer must NOT stage a second event: the offer's own status is
     // a producer-side idempotency guard (the consumer inbox is still the mandatory backstop).
-    let pool = match connect().await {
+    let pool = match connect("producer_idempotent").await {
         Some(p) => p,
         None => return Ok(()),
     };
-    let _guard = setup_locked(&pool).await?;
+    setup(&pool).await?;
 
     let (_company_id, offer_id, _, _) = seed_hireable_offer(&pool).await;
     let svc = JobOfferWriteService::new(pool.clone());
