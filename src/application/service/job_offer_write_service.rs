@@ -47,7 +47,7 @@ use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
 use super::letter_port::{LetterMessage, OfferLetterSink, UnwiredOfferLetterSink};
-use super::offer_letter_render::render;
+use super::offer_letter_render::{format_date_long, format_salary_idr, render};
 
 /// The `event_type` stamped on every hire outbox row. The employee consumer
 /// subscribes to exactly this pattern (`"recruitment.hired"`).
@@ -150,12 +150,13 @@ pub struct NewJobOffer {
     pub letter_template_id: Option<Uuid>,
 }
 
-/// Optional context for the rendered offer letter. Everything has a sensible
-/// default (start date = today; company name omitted) so a plain `Default`
-/// still renders a usable letter.
+/// Optional context for the rendered offer letter. Every field is optional
+/// and an omitted field is NEVER invented: its template token falls back to
+/// the template's own wording (`{{start_date|as agreed}}`) or stays visible.
 #[derive(Debug, Clone, Default)]
 pub struct ExtendOptions {
-    /// The promised first working day. Defaults to today.
+    /// The promised first working day. Omitted: no default to today — the
+    /// letter renders the template's fallback wording for the token.
     pub start_date: Option<NaiveDate>,
     /// Company display name for the salutation. Not owned by this module, so
     /// the caller supplies it; omitted → the `{{company_name}}` token stays
@@ -163,13 +164,62 @@ pub struct ExtendOptions {
     pub company_name: Option<String>,
 }
 
+/// Letter variables, shared by `preview_letter` and `extend` so the two
+/// doors always render the identical letter. Formal-document values carry
+/// their written form (`Rp 12.000.000`, `27 September 2026`); the machine
+/// forms stay reachable as `proposed_salary_raw` / `start_date_iso`.
+/// Optional facts are OMITTED when unknown so the template's fallback
+/// wording applies — never a silent empty string, never an invented date.
+fn letter_vars(
+    candidate_first_name: String,
+    position_title: String,
+    proposed_salary: Option<Decimal>,
+    company_name: Option<String>,
+    start_date: Option<NaiveDate>,
+) -> serde_json::Value {
+    let mut vars = serde_json::Map::new();
+    vars.insert(
+        "candidate_first_name".to_string(),
+        serde_json::json!(candidate_first_name),
+    );
+    vars.insert(
+        "position_title".to_string(),
+        serde_json::json!(position_title),
+    );
+    if let Some(salary) = proposed_salary {
+        vars.insert(
+            "proposed_salary".to_string(),
+            serde_json::json!(format_salary_idr(salary)),
+        );
+        vars.insert(
+            "proposed_salary_raw".to_string(),
+            serde_json::json!(salary.to_string()),
+        );
+    }
+    if let Some(name) = company_name {
+        vars.insert("company_name".to_string(), serde_json::json!(name));
+    }
+    if let Some(date) = start_date {
+        vars.insert(
+            "start_date".to_string(),
+            serde_json::json!(format_date_long(date)),
+        );
+        vars.insert(
+            "start_date_iso".to_string(),
+            serde_json::json!(date.to_string()),
+        );
+    }
+    serde_json::Value::Object(vars)
+}
+
 /// The offer write-service: the one door for offer state transitions and the
 /// hire-handoff producer.
 pub struct JobOfferWriteService {
     pool: PgPool,
     letters: Arc<dyn OfferLetterSink>,
-    approvals:
-        std::sync::RwLock<std::sync::Arc<dyn super::recruitment_approvals_port::RecruitmentFilingPort>>,
+    approvals: std::sync::RwLock<
+        std::sync::Arc<dyn super::recruitment_approvals_port::RecruitmentFilingPort>,
+    >,
 }
 
 impl JobOfferWriteService {
@@ -181,18 +231,24 @@ impl JobOfferWriteService {
 
     /// Unwired default — letters explicitly requested will fail closed.
     pub fn new(pool: PgPool) -> Self {
-        Self { pool, letters: Arc::new(UnwiredOfferLetterSink),
-               approvals: std::sync::RwLock::new(std::sync::Arc::new(
-                   super::recruitment_approvals_port::UnwiredRecruitmentApprovals,
-               )) }
+        Self {
+            pool,
+            letters: Arc::new(UnwiredOfferLetterSink),
+            approvals: std::sync::RwLock::new(std::sync::Arc::new(
+                super::recruitment_approvals_port::UnwiredRecruitmentApprovals,
+            )),
+        }
     }
 
     /// Bind a real letter adapter (the host app's mail seam).
     pub fn with_letter_sink(pool: PgPool, sink: Arc<dyn OfferLetterSink>) -> Self {
-        Self { pool, letters: sink,
-               approvals: std::sync::RwLock::new(std::sync::Arc::new(
-                   super::recruitment_approvals_port::UnwiredRecruitmentApprovals,
-               )) }
+        Self {
+            pool,
+            letters: sink,
+            approvals: std::sync::RwLock::new(std::sync::Arc::new(
+                super::recruitment_approvals_port::UnwiredRecruitmentApprovals,
+            )),
+        }
     }
 
     /// Wire the approvals port (the composing service's adapter).
@@ -200,7 +256,10 @@ impl JobOfferWriteService {
         &self,
         port: std::sync::Arc<dyn super::recruitment_approvals_port::RecruitmentFilingPort>,
     ) {
-        *self.approvals.write().expect("offer approvals lock poisoned") = port;
+        *self
+            .approvals
+            .write()
+            .expect("offer approvals lock poisoned") = port;
     }
 
     /// Create an offer in `draft` for an ongoing application. Offers only
@@ -215,18 +274,19 @@ impl JobOfferWriteService {
             org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
         }
 
-        let row = sqlx::query(
-            "SELECT refused_at FROM recruitment.job_applications WHERE id = $1",
-        )
-        .bind(input.application_id)
-        .fetch_optional(&mut *tx)
-        .await?;
+        let row = sqlx::query("SELECT refused_at FROM recruitment.job_applications WHERE id = $1")
+            .bind(input.application_id)
+            .fetch_optional(&mut *tx)
+            .await?;
         match row {
             None => {
                 tx.rollback().await?;
                 return Err(OfferError::ApplicationNotFound(input.application_id));
             }
-            Some(r) if r.try_get::<Option<chrono::DateTime<Utc>>, _>("refused_at")?.is_some() => {
+            Some(r)
+                if r.try_get::<Option<chrono::DateTime<Utc>>, _>("refused_at")?
+                    .is_some() =>
+            {
                 tx.rollback().await?;
                 return Err(OfferError::ApplicationRefused(input.application_id));
             }
@@ -263,16 +323,16 @@ impl JobOfferWriteService {
         }
         let linked: Option<(Uuid, Uuid, Option<Decimal>, Option<String>)> =
             sqlx::query_as::<_, (Uuid, Uuid, Option<Decimal>, Option<String>)>(
-            r#"SELECT a.id, COALESCE(r.opened_by, a.candidate_id),
+                r#"SELECT a.id, COALESCE(r.opened_by, a.candidate_id),
                       o.proposed_salary, o.employment_type
                  FROM recruitment.job_offers o
                  JOIN recruitment.job_applications a ON a.id = o.application_id
             LEFT JOIN recruitment.job_requisitions r ON r.id = a.requisition_id
                 WHERE o.id = $1"#,
-        )
-        .bind(id)
-        .fetch_optional(&mut *facts_tx)
-        .await?;
+            )
+            .bind(id)
+            .fetch_optional(&mut *facts_tx)
+            .await?;
         facts_tx.commit().await?;
         if let Some((application_id, filer, proposed_salary, employment_type)) = linked {
             let port = self
@@ -385,15 +445,13 @@ impl JobOfferWriteService {
         let position_title: String = row.try_get("position_title")?;
         let proposed_salary: Option<Decimal> = row.try_get("proposed_salary")?;
         tx.commit().await?;
-        let vars = serde_json::json!({
-            "candidate_first_name": candidate_first_name,
-            "position_title": position_title,
-            "proposed_salary": proposed_salary.map(|d| d.to_string()),
-            "company_name": company_name.unwrap_or_default(),
-            "start_date": start_date
-                .unwrap_or_else(|| Utc::now().date_naive())
-                .to_string(),
-        });
+        let vars = letter_vars(
+            candidate_first_name,
+            position_title,
+            proposed_salary,
+            company_name,
+            start_date,
+        );
         Ok((render(&subject, &vars), render(&body, &vars)))
     }
 
@@ -478,9 +536,14 @@ impl JobOfferWriteService {
             tx.rollback().await?;
             return Err(OfferError::NotExtensible { offer_id, status });
         }
-        if row.try_get::<Option<chrono::DateTime<Utc>>, _>("refused_at")?.is_some() {
+        if row
+            .try_get::<Option<chrono::DateTime<Utc>>, _>("refused_at")?
+            .is_some()
+        {
             tx.rollback().await?;
-            return Err(OfferError::ApplicationRefused(row.try_get("application_id")?));
+            return Err(OfferError::ApplicationRefused(
+                row.try_get("application_id")?,
+            ));
         }
         if row.try_get::<String, _>("requisition_status")? != "open" {
             let req: Uuid = row.try_get("requisition_id")?;
@@ -508,15 +571,16 @@ impl JobOfferWriteService {
             let candidate_first_name: String = row.try_get("candidate_first_name")?;
             let position_title: String = row.try_get("position_title")?;
             let proposed_salary: Option<Decimal> = row.try_get("proposed_salary")?;
-            let vars = serde_json::json!({
-                "candidate_first_name": candidate_first_name,
-                "position_title": position_title,
-                "proposed_salary": proposed_salary.map(|d| d.to_string()),
-                "company_name": opts.company_name,
-                "start_date": opts.start_date.unwrap_or_else(|| Utc::now().date_naive()).to_string(),
-            });
+            let vars = letter_vars(
+                candidate_first_name,
+                position_title,
+                proposed_salary,
+                opts.company_name,
+                opts.start_date,
+            );
             letter = Some(LetterMessage {
-                to_email: row.try_get::<Option<String>, _>("candidate_email")?
+                to_email: row
+                    .try_get::<Option<String>, _>("candidate_email")?
                     .unwrap_or_default(),
                 subject: render(&subject, &vars),
                 body: render(&body, &vars),
@@ -543,7 +607,10 @@ impl JobOfferWriteService {
                     "candidate has no email address".to_string(),
                 ));
             }
-            self.letters.send(msg).await.map_err(|e| OfferError::LetterDelivery(e.message))?;
+            self.letters
+                .send(msg)
+                .await
+                .map_err(|e| OfferError::LetterDelivery(e.message))?;
         }
         Ok(true)
     }
@@ -723,7 +790,8 @@ impl JobOfferWriteService {
 
     /// Draft/extended → withdrawn (the hiring organization pulled it back).
     pub async fn withdraw(&self, offer_id: Uuid) -> Result<(), OfferError> {
-        self.cas(offer_id, "withdrawn", &["draft", "extended"]).await
+        self.cas(offer_id, "withdrawn", &["draft", "extended"])
+            .await
     }
 
     /// Shared compare-and-set transition: only `from` states may move to `to`.
