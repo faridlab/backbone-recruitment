@@ -1,6 +1,6 @@
 [package]
 name = "backbone-recruitment"
-version = "0.3.31"
+version = "0.3.32"
 edition = "2021"
 description = "Recruitment pipeline: job requisitions with required skills, candidates and applications, stages, interviews, and offers with letter templates"
 license = "MIT OR Apache-2.0"
@@ -99,4 +99,4 @@ rand = "0.8"
 # The hire→employee compound-event flow (ADR-005) crosses into backbone-employee: the integration test
 # drives the producer here, then runs backbone-employee's `RecruitmentHiredHandler` consumer to prove
 # the end-to-end outbox flow + idempotency. Dev-only — production never depends recruitment→employee.
-backbone-employee = { version = "0.2.45" }
+backbone-employee = { version = "0.2.46" }
