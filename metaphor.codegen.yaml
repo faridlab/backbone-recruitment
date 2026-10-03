@@ -27,6 +27,15 @@ user_owned:
   - "src/application/service/interview_write_service.rs"
   # Requisition skill requirements (set/replace) with cross-schema skill validation.
   - "src/application/service/requisition_skill_write_service.rs"
+  # The vacancy rule (openings = headcount − filled) the application and offer
+  # verbs refuse on when a requisition is full.
+  - "src/application/service/requisition_vacancy.rs"
+  # The approvals-engine seam for requisition opening and offer extension, and
+  # the engine-gated draft → open requisition lane.
+  - "src/application/service/recruitment_approvals_port.rs"
+  - "src/application/service/requisition_lifecycle.rs"
+  # Binds the composer's request pool for the verbs.
+  - "src/request_pool.rs"
   # Outbound seams kept as local port traits so this module never depends on the
   # mail module: the host app wires real adapters; defaults fail closed.
   - "src/application/service/activity_port.rs"
@@ -45,10 +54,19 @@ user_owned:
   # decorator-first ordering guard.
   - "migrations/20260909120000_strip_tenancy.up.sql"
   - "migrations/20260909120000_strip_tenancy.down.sql"
+  # Column additions on published tables (append-only ALTERs).
+  - "migrations/20260925140000_add_offer_approval_link.up.sql"
+  - "migrations/20260925140000_add_offer_approval_link.down.sql"
+  - "migrations/20260925160000_add_requisition_approval_link.up.sql"
+  - "migrations/20260925160000_add_requisition_approval_link.down.sql"
+  - "migrations/20261003120000_add_offer_start_date.up.sql"
+  - "migrations/20261003120000_add_offer_start_date.down.sql"
 
   # Behavior tests (the golden cases / oracle) + BDD features.
   - "tests/features/**"
   - "tests/hire_flow.rs"
+  - "tests/vacancy_and_start_date.rs"
+  - "tests/approval_link_read_shape.rs"
 
   # Hand-authored module documentation.
   - "docs/**"

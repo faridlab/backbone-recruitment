@@ -102,7 +102,8 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                first_name TEXT NOT NULL,
                last_name TEXT,
-               email TEXT
+               email TEXT,
+               phone TEXT
            )"#,
     )
     .execute(pool)
@@ -152,6 +153,7 @@ async fn setup(pool: &PgPool) -> sqlx::Result<()> {
                status offer_status NOT NULL DEFAULT 'draft',
                offered_at TIMESTAMPTZ,
                accepted_at TIMESTAMPTZ,
+               start_date DATE,
                metadata JSONB NOT NULL DEFAULT '{}'::jsonb
            )"#,
     )
@@ -272,8 +274,8 @@ async fn seed_hireable_offer(pool: &PgPool) -> (Uuid, Uuid, Uuid, Uuid) {
     .get("id");
 
     let offer_id: Uuid = sqlx::query(
-        "INSERT INTO recruitment.job_offers (application_id, employment_type, proposed_salary, status)
-         VALUES ($1,'permanent',$2,'extended') RETURNING id",
+        "INSERT INTO recruitment.job_offers (application_id, employment_type, proposed_salary, status, start_date)
+         VALUES ($1,'permanent',$2,'extended','2026-11-02') RETURNING id",
     )
     .bind(application_id)
     .bind(Decimal::new(5_000_000, 0))
@@ -376,9 +378,15 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
     assert_eq!(first_name, "Ada");
     assert_eq!(last_name.as_deref(), Some("Lovelace"));
     assert_eq!(email.as_deref(), Some("ada@example.com"));
+    // The hire numbers the employee from the company's sequence (first one here:
+    // E000001); the duplicate guard is the employee id, derived from the offer.
+    assert_eq!(employee_number, "E000001", "the first hire takes the sequence's first number");
     assert_eq!(
-        employee_number, format!("REC-{offer_id}"),
-        "employee_number is derived deterministically from the offer (idempotency friendly)"
+        employee_id,
+        backbone_employee::application::service::recruitment_hired_handler::hired_employee_id(
+            offer_id
+        ),
+        "the employee id is derived from the offer, so a replayed hire cannot make a second one"
     );
 
     let emp_count: i64 = sqlx::query_scalar(
@@ -390,7 +398,7 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
     assert_eq!(emp_count, 1, "exactly one employee");
 
     let emt = sqlx::query(
-        "SELECT employment_status::text AS s, position_id, department_id
+        "SELECT employment_status::text AS s, position_id, department_id, join_date
          FROM employee.employments WHERE employee_id=$1",
     )
     .bind(employee_id)
@@ -402,6 +410,11 @@ async fn hire_flow_creates_employee_and_is_idempotent() -> Result<(), Box<dyn st
     assert_eq!(employment_status, "permanent", "employment_type mapped onto the enum");
     assert_eq!(got_position, Some(position_id), "position carried from the requisition");
     assert_eq!(got_department, Some(department_id), "department carried from the requisition");
+    assert_eq!(
+        emt.get::<chrono::NaiveDate, _>("join_date"),
+        chrono::NaiveDate::from_ymd_opt(2026, 11, 2).unwrap(),
+        "the employment joins on the first day the offer promised, not the day of the hire"
+    );
 
     // The consumer recorded the apply in its inbox.
     assert!(

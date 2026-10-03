@@ -27,11 +27,19 @@
 //! There is deliberately no stored `status` column to maintain: "ongoing /
 //! hired / refused" is derived (stage flags + refusal marks) on read —
 //! [`JobApplicationWriteService::pipeline`] is that projection.
+//!
+//! A requisition with no openings left (`headcount - filled_headcount <= 0`)
+//! also refuses a NEW application ([`ApplicationError::NoOpenHeadcount`]) —
+//! the earlier door of the same rule `move_stage` enforces at the hire, so a
+//! candidate is not put forward for a seat that does not exist. The rule
+//! itself lives in [`super::requisition_vacancy`].
 
 use backbone_orm::org_scope;
 use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
+
+use super::requisition_vacancy::{openings_left, require_opening, NoOpenings};
 
 /// Errors from the application write-service.
 #[derive(Debug, thiserror::Error)]
@@ -52,8 +60,9 @@ pub enum ApplicationError {
     NoStagesConfigured,
     #[error("application {0} is already refused — refused applications cannot move")]
     AlreadyRefused(Uuid),
-    #[error("requisition has no open headcount left")]
-    NoOpenHeadcount,
+    /// The requisition is full: every opening is filled.
+    #[error("{0}")]
+    NoOpenHeadcount(NoOpenings),
     #[error("a database failure: {0}")]
     Db(#[from] sqlx::Error),
 }
@@ -70,7 +79,7 @@ impl ApplicationError {
             ApplicationError::StageNotFound(_) => "stage_not_found",
             ApplicationError::NoStagesConfigured => "no_stages_configured",
             ApplicationError::AlreadyRefused(_) => "already_refused",
-            ApplicationError::NoOpenHeadcount => "no_open_headcount",
+            ApplicationError::NoOpenHeadcount(_) => "no_open_headcount",
             ApplicationError::Db(_) => "internal_error",
         }
     }
@@ -85,7 +94,7 @@ impl ApplicationError {
             | ApplicationError::NoStagesConfigured
             | ApplicationError::AlreadyRefused(_) => 422,
             // Full pipeline: a business-rule refusal, not a bad request.
-            ApplicationError::NoOpenHeadcount => 409,
+            ApplicationError::NoOpenHeadcount(_) => 409,
             ApplicationError::Db(_) => 500,
         }
     }
@@ -114,6 +123,8 @@ pub struct PipelineStatus {
     pub requisition_id: Uuid,
     pub requisition_headcount: i32,
     pub requisition_filled_headcount: i32,
+    /// `headcount - filled_headcount`; zero or less = the requisition is full.
+    pub requisition_openings_left: i32,
 }
 
 /// The application write-service: create / move_stage / refuse + the derived
@@ -233,22 +244,32 @@ impl JobApplicationWriteService {
             return Err(ApplicationError::CandidateNotFound(input.candidate_id));
         }
 
-        // Requisition must exist and be open for applications.
-        let requisition_open: Option<String> = sqlx::query_scalar(
-            "SELECT status::text FROM recruitment.job_requisitions WHERE id = $1",
+        // Requisition must exist, be open for applications, and still have an
+        // opening: a full requisition refuses the next candidate here, before
+        // anyone is put forward, not only at the move to a hired stage.
+        let requisition: Option<(String, i32, i32)> = sqlx::query_as(
+            "SELECT status::text, headcount, filled_headcount \
+             FROM recruitment.job_requisitions WHERE id = $1",
         )
         .bind(input.requisition_id)
         .fetch_optional(&mut *tx)
         .await?;
-        match requisition_open.as_deref() {
+        match requisition {
             None => {
                 tx.rollback().await?;
                 return Err(ApplicationError::RequisitionNotFound(input.requisition_id));
             }
-            Some("open") => {}
-            Some(_) => {
+            Some((status, _, _)) if status != "open" => {
                 tx.rollback().await?;
                 return Err(ApplicationError::RequisitionNotOpen(input.requisition_id));
+            }
+            Some((_, headcount, filled)) => {
+                if let Err(full) =
+                    require_opening(input.requisition_id, headcount, filled, false)
+                {
+                    tx.rollback().await?;
+                    return Err(ApplicationError::NoOpenHeadcount(full));
+                }
             }
         }
 
@@ -374,10 +395,13 @@ impl JobApplicationWriteService {
         let enters_hired = tgt_is_hired && !cur_is_hired;
         let leaves_hired = cur_is_hired && !tgt_is_hired;
         if enters_hired {
-            let remaining = headcount - filled_headcount;
-            if remaining <= 0 {
+            if openings_left(headcount, filled_headcount) <= 0 {
                 tx.rollback().await?;
-                return Err(ApplicationError::NoOpenHeadcount);
+                return Err(ApplicationError::NoOpenHeadcount(NoOpenings {
+                    requisition_id,
+                    headcount,
+                    filled: filled_headcount,
+                }));
             }
             sqlx::query(
                 "UPDATE recruitment.job_requisitions \
@@ -522,6 +546,8 @@ impl JobApplicationWriteService {
         };
 
         let refused: bool = row.try_get::<Option<DateTime<Utc>>, _>("refused_at")?.is_some();
+        let headcount: i32 = row.try_get("headcount")?;
+        let filled_headcount: i32 = row.try_get("filled_headcount")?;
         let is_hired: bool = row.try_get("is_hired")?;
         let status = if refused {
             "refused"
@@ -541,8 +567,30 @@ impl JobApplicationWriteService {
             date_closed: row.try_get("date_closed")?,
             refuse_reason: row.try_get("refuse_reason")?,
             requisition_id: row.try_get("requisition_id")?,
-            requisition_headcount: row.try_get("headcount")?,
-            requisition_filled_headcount: row.try_get("filled_headcount")?,
+            requisition_headcount: headcount,
+            requisition_filled_headcount: filled_headcount,
+            requisition_openings_left: openings_left(headcount, filled_headcount),
         }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_full_requisition_refusal_is_a_typed_409_that_names_the_counts() {
+        let e = ApplicationError::NoOpenHeadcount(NoOpenings {
+            requisition_id: Uuid::from_u128(706),
+            headcount: 2,
+            filled: 2,
+        });
+        assert_eq!(e.code(), "no_open_headcount");
+        assert_eq!(e.http_status(), 409);
+        assert_eq!(
+            e.to_string(),
+            "this requisition has no openings left: 2 of 2 are filled. \
+             Raise its headcount to take on another candidate"
+        );
     }
 }

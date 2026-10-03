@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, NaiveDate};
 use rust_decimal::Decimal;
 
 #[cfg(feature = "openapi")]
@@ -34,6 +34,8 @@ use crate::domain::entity::OfferStatus;
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct CreateJobOfferDto {
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "approval_request_id")]
+    pub approval_request_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "application_id")]
     pub application_id: Uuid,
@@ -48,6 +50,8 @@ pub struct CreateJobOfferDto {
     pub offered_at: Option<DateTime<Utc>>,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "accepted_at")]
     pub accepted_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "start_date")]
+    pub start_date: Option<NaiveDate>,
 }
 
 // =============================================================================
@@ -63,6 +67,8 @@ pub struct CreateJobOfferDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateJobOfferDto {
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "approval_request_id")]
+    pub approval_request_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(alias = "application_id")]
     pub application_id: Uuid,
@@ -77,6 +83,8 @@ pub struct UpdateJobOfferDto {
     pub offered_at: Option<DateTime<Utc>>,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "accepted_at")]
     pub accepted_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none", alias = "start_date")]
+    pub start_date: Option<NaiveDate>,
 }
 
 // =============================================================================
@@ -92,6 +100,8 @@ pub struct UpdateJobOfferDto {
 #[cfg_attr(feature = "validation", derive(Validate))]
 #[serde(rename_all = "camelCase")]
 pub struct PatchJobOfferDto {
+    #[serde(skip_serializing_if = "Option::is_none", alias = "approval_request_id")]
+    pub approval_request_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "application_id")]
     pub application_id: Option<Uuid>,
@@ -107,12 +117,14 @@ pub struct PatchJobOfferDto {
     pub offered_at: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none", alias = "accepted_at")]
     pub accepted_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none", alias = "start_date")]
+    pub start_date: Option<NaiveDate>,
 }
 
 impl PatchJobOfferDto {
     /// Check if any field is set
     pub fn has_changes(&self) -> bool {
-        self.application_id.is_some() || self.proposed_salary.is_some() || self.employment_type.is_some() || self.letter_template_id.is_some() || self.status.is_some() || self.offered_at.is_some() || self.accepted_at.is_some()
+        self.approval_request_id.is_some() || self.application_id.is_some() || self.proposed_salary.is_some() || self.employment_type.is_some() || self.letter_template_id.is_some() || self.status.is_some() || self.offered_at.is_some() || self.accepted_at.is_some() || self.start_date.is_some()
     }
 }
 
@@ -130,6 +142,7 @@ impl PatchJobOfferDto {
 pub struct JobOfferResponseDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub id: Uuid,
+    pub approval_request_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
@@ -138,6 +151,7 @@ pub struct JobOfferResponseDto {
     pub status: OfferStatus,
     pub offered_at: Option<DateTime<Utc>>,
     pub accepted_at: Option<DateTime<Utc>>,
+    pub start_date: Option<NaiveDate>,
     pub metadata: AuditMetadata,
 }
 
@@ -209,6 +223,7 @@ impl From<JobOffer> for JobOfferResponseDto {
     fn from(entity: JobOffer) -> Self {
         Self {
             id: entity.id,
+            approval_request_id: entity.approval_request_id,
             application_id: entity.application_id,
             proposed_salary: entity.proposed_salary,
             employment_type: entity.employment_type,
@@ -216,6 +231,7 @@ impl From<JobOffer> for JobOfferResponseDto {
             status: entity.status,
             offered_at: entity.offered_at,
             accepted_at: entity.accepted_at,
+            start_date: entity.start_date,
             metadata: entity.metadata,
         }
     }
@@ -238,6 +254,7 @@ impl From<CreateJobOfferDto> for JobOffer {
     fn from(dto: CreateJobOfferDto) -> Self {
         Self {
             id: Uuid::new_v4(),
+            approval_request_id: dto.approval_request_id,
             application_id: dto.application_id,
             proposed_salary: dto.proposed_salary,
             employment_type: dto.employment_type,
@@ -245,6 +262,7 @@ impl From<CreateJobOfferDto> for JobOffer {
             status: dto.status,
             offered_at: dto.offered_at,
             accepted_at: dto.accepted_at,
+            start_date: dto.start_date,
             metadata: AuditMetadata::default(),
         }
     }
@@ -254,6 +272,7 @@ impl From<&JobOffer> for JobOfferResponseDto {
     fn from(entity: &JobOffer) -> Self {
         Self {
             id: entity.id.clone(),
+            approval_request_id: entity.approval_request_id.clone(),
             application_id: entity.application_id.clone(),
             proposed_salary: entity.proposed_salary.clone(),
             employment_type: entity.employment_type.clone(),
@@ -261,6 +280,7 @@ impl From<&JobOffer> for JobOfferResponseDto {
             status: entity.status.clone(),
             offered_at: entity.offered_at.clone(),
             accepted_at: entity.accepted_at.clone(),
+            start_date: entity.start_date.clone(),
             metadata: entity.metadata.clone(),
         }
     }
@@ -274,6 +294,7 @@ impl backbone_core::FromCreateDto<CreateJobOfferDto> for JobOffer {
 
 impl backbone_core::ApplyUpdateDto<UpdateJobOfferDto> for JobOffer {
     fn apply_update(mut self, dto: UpdateJobOfferDto) -> backbone_core::ServiceResult<Self> {
+        self.approval_request_id = dto.approval_request_id;
         self.application_id = dto.application_id;
         self.proposed_salary = dto.proposed_salary;
         self.employment_type = dto.employment_type;
@@ -281,6 +302,7 @@ impl backbone_core::ApplyUpdateDto<UpdateJobOfferDto> for JobOffer {
         self.status = dto.status;
         self.offered_at = dto.offered_at;
         self.accepted_at = dto.accepted_at;
+        self.start_date = dto.start_date;
         Ok(self)
     }
 }

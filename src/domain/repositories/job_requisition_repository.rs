@@ -49,13 +49,14 @@ pub struct JobRequisitionFilter {
     pub title: Option<String>,
     pub employment_type: Option<String>,
     pub status: Option<RequisitionStatus>,
+    pub approval_request_id: Option<Uuid>,
     pub opened_by: Option<Uuid>,
 }
 
 impl JobRequisitionFilter {
     /// Check if any filter is set
     pub fn has_filters(&self) -> bool {
-        self.department_id.is_some() || self.position_id.is_some() || self.title.is_some() || self.employment_type.is_some() || self.status.is_some() || self.opened_by.is_some()
+        self.department_id.is_some() || self.position_id.is_some() || self.title.is_some() || self.employment_type.is_some() || self.status.is_some() || self.approval_request_id.is_some() || self.opened_by.is_some()
     }
 }
 

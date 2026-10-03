@@ -236,6 +236,7 @@ impl From<JobOfferId> for Uuid {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JobOfferDto {
     pub id: JobOfferId,
+    pub approval_request_id: Option<Uuid>,
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
     pub employment_type: Option<String>,
@@ -243,6 +244,7 @@ pub struct JobOfferDto {
     pub status: OfferStatus,
     pub offered_at: Option<DateTime<Utc>>,
     pub accepted_at: Option<DateTime<Utc>>,
+    pub start_date: Option<NaiveDate>,
     pub metadata: serde_json::Value,
 }
 
@@ -304,6 +306,7 @@ pub struct JobRequisitionDto {
     pub filled_headcount: i32,
     pub employment_type: Option<String>,
     pub status: RequisitionStatus,
+    pub approval_request_id: Option<Uuid>,
     pub opened_by: Uuid,
     pub budget: Option<Decimal>,
     pub deadline: Option<NaiveDate>,

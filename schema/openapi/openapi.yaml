@@ -3472,6 +3472,10 @@ components:
         id:
           type: string
           format: uuid
+        approval_request_id:
+          nullable: true
+          type: string
+          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3495,6 +3499,10 @@ components:
           nullable: true
           type: string
           format: date-time
+        start_date:
+          nullable: true
+          type: string
+          format: date
         metadata:
           type: object
 
@@ -3518,6 +3526,10 @@ components:
         - status
         - metadata
       properties:
+        approval_request_id:
+          nullable: true
+          type: string
+          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3541,6 +3553,10 @@ components:
           nullable: true
           type: string
           format: date-time
+        start_date:
+          nullable: true
+          type: string
+          format: date
         metadata:
           type: object
 
@@ -3551,6 +3567,10 @@ components:
         - status
         - metadata
       properties:
+        approval_request_id:
+          nullable: true
+          type: string
+          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3574,12 +3594,20 @@ components:
           nullable: true
           type: string
           format: date-time
+        start_date:
+          nullable: true
+          type: string
+          format: date
         metadata:
           type: object
 
     PatchJobOfferRequest:
       type: object
       properties:
+        approval_request_id:
+          nullable: true
+          type: string
+          format: uuid
         application_id:
           type: string
           format: uuid
@@ -3603,6 +3631,10 @@ components:
           nullable: true
           type: string
           format: date-time
+        start_date:
+          nullable: true
+          type: string
+          format: date
         metadata:
           type: object
 
@@ -3651,6 +3683,10 @@ components:
           type: string
         status:
           type: string
+        approval_request_id:
+          nullable: true
+          type: string
+          format: uuid
         opened_by:
           type: string
           format: uuid
@@ -3708,6 +3744,10 @@ components:
           type: string
         status:
           type: string
+        approval_request_id:
+          nullable: true
+          type: string
+          format: uuid
         opened_by:
           type: string
           format: uuid
@@ -3752,6 +3792,10 @@ components:
           type: string
         status:
           type: string
+        approval_request_id:
+          nullable: true
+          type: string
+          format: uuid
         opened_by:
           type: string
           format: uuid
@@ -3789,6 +3833,10 @@ components:
           type: string
         status:
           type: string
+        approval_request_id:
+          nullable: true
+          type: string
+          format: uuid
         opened_by:
           type: string
           format: uuid

@@ -58,6 +58,7 @@ pub struct JobRequisition {
     pub filled_headcount: i32,
     pub employment_type: Option<String>,
     pub status: RequisitionStatus,
+    pub approval_request_id: Option<Uuid>,
     pub opened_by: Uuid,
     pub budget: Option<Decimal>,
     pub deadline: Option<NaiveDate>,
@@ -83,6 +84,7 @@ impl JobRequisition {
             filled_headcount,
             employment_type: None,
             status,
+            approval_request_id: None,
             opened_by,
             budget: None,
             deadline: None,
@@ -168,6 +170,12 @@ impl JobRequisition {
         self
     }
 
+    /// Set the approval_request_id field (chainable)
+    pub fn with_approval_request_id(mut self, value: Uuid) -> Self {
+        self.approval_request_id = Some(value);
+        self
+    }
+
     /// Set the budget field (chainable)
     pub fn with_budget(mut self, value: Decimal) -> Self {
         self.budget = Some(value);
@@ -208,6 +216,9 @@ impl JobRequisition {
                 }
                 "status" => {
                     if let Ok(v) = serde_json::from_value(value) { self.status = v; }
+                }
+                "approval_request_id" => {
+                    if let Ok(v) = serde_json::from_value(value) { self.approval_request_id = v; }
                 }
                 "opened_by" => {
                     if let Ok(v) = serde_json::from_value(value) { self.opened_by = v; }
@@ -274,6 +285,7 @@ impl backbone_orm::EntityRepoMeta for JobRequisition {
         m.insert("id".to_string(), "uuid".to_string());
         m.insert("department_id".to_string(), "uuid".to_string());
         m.insert("position_id".to_string(), "uuid".to_string());
+        m.insert("approval_request_id".to_string(), "uuid".to_string());
         m.insert("status".to_string(), "requisition_status".to_string());
         m
     }
@@ -295,6 +307,7 @@ pub struct JobRequisitionBuilder {
     filled_headcount: Option<i32>,
     employment_type: Option<String>,
     status: Option<RequisitionStatus>,
+    approval_request_id: Option<Uuid>,
     opened_by: Option<Uuid>,
     budget: Option<Decimal>,
     deadline: Option<NaiveDate>,
@@ -343,6 +356,12 @@ impl JobRequisitionBuilder {
         self
     }
 
+    /// Set the approval_request_id field (optional)
+    pub fn approval_request_id(mut self, value: Uuid) -> Self {
+        self.approval_request_id = Some(value);
+        self
+    }
+
     /// Set the opened_by field (required)
     pub fn opened_by(mut self, value: Uuid) -> Self {
         self.opened_by = Some(value);
@@ -378,6 +397,7 @@ impl JobRequisitionBuilder {
             filled_headcount: self.filled_headcount.unwrap_or(0),
             employment_type: self.employment_type,
             status: self.status.unwrap_or_default(),
+            approval_request_id: self.approval_request_id,
             opened_by,
             budget: self.budget,
             deadline: self.deadline,

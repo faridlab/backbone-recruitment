@@ -55,6 +55,10 @@ models:
         type: datetime?
         description: "When the candidate accepted"
 
+      start_date:
+        type: date?
+        description: "The promised first working day, recorded when the offer is extended (the letter's start date); the hire hands it on as the new employee's join date. NULL = no date agreed yet"
+
       metadata:
         type: Metadata
         attributes: ["@audit_metadata"]

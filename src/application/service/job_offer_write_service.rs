@@ -27,6 +27,17 @@
 //! application already sits in an `is_hired` stage — you cannot hire someone
 //! the pipeline has not hired.
 //!
+//! The offer verbs refuse on a full requisition too: `create_draft` and
+//! `extend` answer [`OfferError::NoOpenHeadcount`] when the requisition has
+//! no openings left (`headcount - filled_headcount <= 0`) — unless the
+//! application already sits in a hired stage and so holds one of the filled
+//! openings itself. The candidate is never offered, or told "yes", for a seat
+//! that does not exist; the rule lives in [`super::requisition_vacancy`].
+//!
+//! `extend` records the promised first working day (`start_date`) on the
+//! offer, and `hire` hands it on as the new employee's join date in the
+//! `recruitment.hired` payload (see [`hired_event_payload`]).
+//!
 //! `extend` optionally sends the offer letter: when the offer references a
 //! letter template, the body is rendered from the candidate/offer context and
 //! handed to the [`OfferLetterSink`] port. An unwired sink plus an explicit
@@ -48,6 +59,7 @@ use uuid::Uuid;
 
 use super::letter_port::{LetterMessage, OfferLetterSink, UnwiredOfferLetterSink};
 use super::offer_letter_render::{format_date_long, format_salary_idr, render};
+use super::requisition_vacancy::{require_opening, NoOpenings};
 
 /// The `event_type` stamped on every hire outbox row. The employee consumer
 /// subscribes to exactly this pattern (`"recruitment.hired"`).
@@ -80,6 +92,9 @@ pub enum OfferError {
     /// `extend` on an application whose requisition is not open.
     #[error("requisition {0} is not open")]
     RequisitionNotOpen(Uuid),
+    /// `create_draft` / `extend` on a requisition with every opening filled.
+    #[error("{0}")]
+    NoOpenHeadcount(NoOpenings),
     /// A letter was requested (template set) but no adapter is wired.
     #[error("the letter seam is not wired — supply an OfferLetterSink to send letters")]
     LetterSeamUnwired,
@@ -114,6 +129,7 @@ impl OfferError {
             OfferError::ApplicationNotHired { .. } => "application_not_hired",
             OfferError::ApplicationRefused(_) => "application_refused",
             OfferError::RequisitionNotOpen(_) => "requisition_not_open",
+            OfferError::NoOpenHeadcount(_) => "no_open_headcount",
             OfferError::LetterSeamUnwired => "letter_seam_unwired",
             OfferError::LetterDelivery(_) => "letter_delivery_failed",
             OfferError::OrgScopeRequired(_) => "org_scope_required",
@@ -131,6 +147,9 @@ impl OfferError {
             | OfferError::ApplicationRefused(_)
             | OfferError::RequisitionNotOpen(_) => 422,
             OfferError::LetterSeamUnwired => 422,
+            // Full requisition: a business-rule refusal, the same status the
+            // stage move answers with.
+            OfferError::NoOpenHeadcount(_) => 409,
             OfferError::LetterDelivery(_) => 502,
             // A composition fault, not a caller error.
             OfferError::OrgScopeRequired(_) => 500,
@@ -212,6 +231,71 @@ fn letter_vars(
     serde_json::Value::Object(vars)
 }
 
+/// Everything the hire hands to the employee side, read inside the hire
+/// transaction from the offer, its application, the candidate and the
+/// requisition the application answered.
+#[derive(Debug, Clone)]
+pub struct HiredFacts {
+    pub offer_id: Uuid,
+    /// The owning tenant (the ambient org scope's legacy company id).
+    pub company_id: Uuid,
+    pub application_id: Uuid,
+    pub requisition_id: Option<Uuid>,
+    pub candidate_id: Option<Uuid>,
+    pub first_name: String,
+    pub last_name: Option<String>,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+    pub employment_type: Option<String>,
+    pub proposed_salary: Option<Decimal>,
+    pub position_id: Option<Uuid>,
+    pub department_id: Option<Uuid>,
+    /// The requisition's role title.
+    pub position_title: Option<String>,
+    /// The promised first working day recorded on the offer at extend.
+    pub start_date: Option<NaiveDate>,
+}
+
+/// The `recruitment.hired` payload — the contract the employee-side
+/// consumers read. `accepted_on` is the day the hire runs.
+///
+/// Dates are ISO `YYYY-MM-DD` strings, the salary a decimal string, ids
+/// UUID strings; an unknown fact is `null`, never invented.
+///
+/// - `join_date` (always set): the first working day — the offer's agreed
+///   `start_date` when one was recorded at extend, else `accepted_on`.
+/// - `start_date` (nullable): the agreed first day exactly as recorded on
+///   the offer, so a consumer can tell an agreed date from the fallback.
+/// - `accepted_on`: the day the offer was accepted (the hire ran).
+pub fn hired_event_payload(f: &HiredFacts, accepted_on: NaiveDate) -> serde_json::Value {
+    let join_date = f.start_date.unwrap_or(accepted_on);
+    serde_json::json!({
+        // Identity — the consumer dedups on the envelope id and keys the
+        // employee off the offer, so the payload is replay safe.
+        "offer_id": f.offer_id,
+        "company_id": f.company_id,
+        "application_id": f.application_id,
+        "requisition_id": f.requisition_id,
+        "candidate_id": f.candidate_id,
+        // The person.
+        "first_name": f.first_name,
+        "last_name": f.last_name,
+        "email": f.email,
+        "phone": f.phone,
+        // Offer terms.
+        "employment_type": f.employment_type,
+        "proposed_salary": f.proposed_salary.map(|d| d.to_string()),
+        // Org placement from the requisition the application answered.
+        "position_id": f.position_id,
+        "department_id": f.department_id,
+        "position_title": f.position_title,
+        // Dates.
+        "join_date": join_date.to_string(),
+        "start_date": f.start_date.map(|d| d.to_string()),
+        "accepted_on": accepted_on.to_string(),
+    })
+}
+
 /// The offer write-service: the one door for offer state transitions and the
 /// hire-handoff producer.
 pub struct JobOfferWriteService {
@@ -274,23 +358,49 @@ impl JobOfferWriteService {
             org_scope::bind_org_scope_on(&mut *tx, &scope).await?;
         }
 
-        let row = sqlx::query("SELECT refused_at FROM recruitment.job_applications WHERE id = $1")
-            .bind(input.application_id)
-            .fetch_optional(&mut *tx)
-            .await?;
-        match row {
+        // The application with its requisition's counters and whether it
+        // already holds an opening (sits in a hired stage).
+        let row = sqlx::query(
+            r#"SELECT a.refused_at                    AS refused_at,
+                      r.id                            AS requisition_id,
+                      r.headcount                     AS headcount,
+                      r.filled_headcount              AS filled_headcount,
+                      COALESCE(s.is_hired, FALSE)     AS holds_opening
+                 FROM recruitment.job_applications a
+            LEFT JOIN recruitment.job_requisitions r  ON r.id = a.requisition_id
+            LEFT JOIN recruitment.recruitment_stages s ON s.id = a.stage_id
+                WHERE a.id = $1"#,
+        )
+        .bind(input.application_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let row = match row {
             None => {
                 tx.rollback().await?;
                 return Err(OfferError::ApplicationNotFound(input.application_id));
             }
-            Some(r)
-                if r.try_get::<Option<chrono::DateTime<Utc>>, _>("refused_at")?
-                    .is_some() =>
-            {
+            Some(r) => r,
+        };
+        if row
+            .try_get::<Option<chrono::DateTime<Utc>>, _>("refused_at")?
+            .is_some()
+        {
+            tx.rollback().await?;
+            return Err(OfferError::ApplicationRefused(input.application_id));
+        }
+        // A full requisition refuses the draft before it is filed for
+        // approval — nobody approves, or tells a candidate about, a seat
+        // that does not exist.
+        if let (Some(requisition_id), Some(headcount), Some(filled)) = (
+            row.try_get::<Option<Uuid>, _>("requisition_id")?,
+            row.try_get::<Option<i32>, _>("headcount")?,
+            row.try_get::<Option<i32>, _>("filled_headcount")?,
+        ) {
+            let holds_opening: bool = row.try_get("holds_opening")?;
+            if let Err(full) = require_opening(requisition_id, headcount, filled, holds_opening) {
                 tx.rollback().await?;
-                return Err(OfferError::ApplicationRefused(input.application_id));
+                return Err(OfferError::NoOpenHeadcount(full));
             }
-            Some(_) => {}
         }
 
         let id = Uuid::new_v4();
@@ -406,7 +516,7 @@ impl JobOfferWriteService {
             org_scope::bind_org_scope_on(&mut tx, &scope).await?;
         }
         let row = sqlx::query(
-            r#"SELECT o.letter_template_id, o.proposed_salary,
+            r#"SELECT o.letter_template_id, o.proposed_salary, o.start_date,
                       c.first_name AS candidate_first_name,
                       r.title AS position_title
                  FROM recruitment.job_offers o
@@ -444,6 +554,9 @@ impl JobOfferWriteService {
         let candidate_first_name: String = row.try_get("candidate_first_name")?;
         let position_title: String = row.try_get("position_title")?;
         let proposed_salary: Option<Decimal> = row.try_get("proposed_salary")?;
+        // An explicit date previews that date; otherwise the one already on
+        // the offer (if any) — the letter extend would send.
+        let start_date = start_date.or(row.try_get::<Option<NaiveDate>, _>("start_date")?);
         tx.commit().await?;
         let vars = letter_vars(
             candidate_first_name,
@@ -503,15 +616,18 @@ impl JobOfferWriteService {
 
         let row = sqlx::query(
             r#"SELECT o.application_id, o.proposed_salary, o.letter_template_id,
-                      o.status::text AS status,
+                      o.status::text AS status, o.start_date AS start_date,
                       c.first_name AS candidate_first_name, c.email AS candidate_email,
                       r.id AS requisition_id, r.title AS position_title,
                       r.status::text AS requisition_status,
+                      r.headcount AS headcount, r.filled_headcount AS filled_headcount,
+                      COALESCE(s.is_hired, FALSE) AS holds_opening,
                       a.refused_at AS refused_at
                  FROM recruitment.job_offers o
                  JOIN recruitment.job_applications a ON a.id = o.application_id
                  JOIN recruitment.candidates c      ON c.id = a.candidate_id
                  JOIN recruitment.job_requisitions r ON r.id = a.requisition_id
+            LEFT JOIN recruitment.recruitment_stages s ON s.id = a.stage_id
                 WHERE o.id = $1
                 FOR UPDATE OF o"#,
         )
@@ -550,6 +666,23 @@ impl JobOfferWriteService {
             tx.rollback().await?;
             return Err(OfferError::RequisitionNotOpen(req));
         }
+        // The requisition may have filled up since the draft was approved:
+        // refuse BEFORE the letter goes out, not at the move to hired.
+        if let Err(full) = require_opening(
+            row.try_get("requisition_id")?,
+            row.try_get("headcount")?,
+            row.try_get("filled_headcount")?,
+            row.try_get("holds_opening")?,
+        ) {
+            tx.rollback().await?;
+            return Err(OfferError::NoOpenHeadcount(full));
+        }
+        // The promised first day: the one given now, else the one already on
+        // the offer. It goes into the letter AND onto the offer, so the hire
+        // can hand it on as the join date.
+        let start_date: Option<NaiveDate> = opts
+            .start_date
+            .or(row.try_get::<Option<NaiveDate>, _>("start_date")?);
 
         // Letter seam: an explicit template plus no adapter fails closed
         // BEFORE the offer moves — nothing is silently unsent.
@@ -576,7 +709,7 @@ impl JobOfferWriteService {
                 position_title,
                 proposed_salary,
                 opts.company_name,
-                opts.start_date,
+                start_date,
             );
             letter = Some(LetterMessage {
                 to_email: row
@@ -590,9 +723,12 @@ impl JobOfferWriteService {
         }
 
         sqlx::query(
-            "UPDATE recruitment.job_offers SET status = 'extended', offered_at = NOW() WHERE id = $1",
+            "UPDATE recruitment.job_offers \
+                SET status = 'extended', offered_at = NOW(), start_date = $2 \
+              WHERE id = $1",
         )
         .bind(offer_id)
+        .bind(start_date)
         .execute(&mut *tx)
         .await?;
 
@@ -662,7 +798,7 @@ impl JobOfferWriteService {
         // stage, so a concurrent hire cannot race a second accept.
         let row = sqlx::query(
             r#"SELECT o.application_id, o.proposed_salary, o.employment_type,
-                      o.status::text AS status
+                      o.status::text AS status, o.start_date AS start_date
                  FROM recruitment.job_offers o
                 WHERE o.id = $1
                 FOR UPDATE OF o"#,
@@ -682,6 +818,7 @@ impl JobOfferWriteService {
         let application_id: Uuid = row.try_get("application_id")?;
         let proposed_salary: Option<Decimal> = row.try_get("proposed_salary")?;
         let employment_type: Option<String> = row.try_get("employment_type")?;
+        let start_date: Option<NaiveDate> = row.try_get("start_date")?;
         let status: String = row.try_get("status")?;
 
         if status == "accepted" {
@@ -712,7 +849,9 @@ impl JobOfferWriteService {
             r#"SELECT c.first_name    AS first_name,
                       c.last_name      AS last_name,
                       c.email          AS email,
+                      c.phone          AS phone,
                       a.candidate_id   AS candidate_id,
+                      a.requisition_id AS requisition_id,
                       r.position_id    AS position_id,
                       r.department_id  AS department_id,
                       r.title          AS position_title,
@@ -732,35 +871,24 @@ impl JobOfferWriteService {
             return Err(OfferError::ApplicationNotHired { application_id });
         }
 
-        let first_name: String = joined.try_get("first_name")?;
-        let last_name: Option<String> = joined.try_get("last_name")?;
-        let email: Option<String> = joined.try_get("email")?;
-        let candidate_id: Option<Uuid> = joined.try_get("candidate_id")?;
-        let position_id: Option<Uuid> = joined.try_get("position_id")?;
-        let department_id: Option<Uuid> = joined.try_get("department_id")?;
-
-        let payload = serde_json::json!({
-            // Identity — the consumer dedups on `offer_id` (via the envelope
-            // id) and keys the employee_number off it, so this payload is
-            // round-trip safe across a replay.
-            "offer_id": offer_id,
-            "company_id": owning_company,
-            "candidate_id": candidate_id,
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            // Offer terms.
-            "employment_type": employment_type,
-            "proposed_salary": proposed_salary.map(|d| d.to_string()),
-            // Org placement (from the requisition the application answered;
-            // nullable).
-            "position_id": position_id,
-            "department_id": department_id,
-            // join_date = the day the offer was accepted (hire effective
-            // today; onboarding/lifecycle may adjust it later). ISO date
-            // string — the consumer parses it into a NaiveDate.
-            "join_date": Utc::now().date_naive().to_string(),
-        });
+        let facts = HiredFacts {
+            offer_id,
+            company_id: owning_company,
+            application_id,
+            requisition_id: joined.try_get("requisition_id")?,
+            candidate_id: joined.try_get("candidate_id")?,
+            first_name: joined.try_get("first_name")?,
+            last_name: joined.try_get("last_name")?,
+            email: joined.try_get("email")?,
+            phone: joined.try_get("phone")?,
+            employment_type,
+            proposed_salary,
+            position_id: joined.try_get("position_id")?,
+            department_id: joined.try_get("department_id")?,
+            position_title: joined.try_get("position_title")?,
+            start_date,
+        };
+        let payload = hired_event_payload(&facts, Utc::now().date_naive());
 
         // 3. Stage the outbox event IN THE SAME TX as the state change. The
         //    outbox row's `id` is the end-to-end dedup key (the relay
@@ -836,5 +964,112 @@ impl JobOfferWriteService {
 
         tx.commit().await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn facts(start_date: Option<NaiveDate>) -> HiredFacts {
+        HiredFacts {
+            offer_id: Uuid::from_u128(1),
+            company_id: Uuid::from_u128(2),
+            application_id: Uuid::from_u128(3),
+            requisition_id: Some(Uuid::from_u128(4)),
+            candidate_id: Some(Uuid::from_u128(5)),
+            first_name: "Rina".to_string(),
+            last_name: Some("Kusuma".to_string()),
+            email: Some("rina@example.com".to_string()),
+            phone: Some("+62811000111".to_string()),
+            employment_type: Some("permanent".to_string()),
+            proposed_salary: Some(Decimal::new(9_000_000, 0)),
+            position_id: Some(Uuid::from_u128(6)),
+            department_id: Some(Uuid::from_u128(7)),
+            position_title: Some("Payroll analyst".to_string()),
+            start_date,
+        }
+    }
+
+    fn day(y: i32, m: u32, d: u32) -> NaiveDate {
+        NaiveDate::from_ymd_opt(y, m, d).unwrap()
+    }
+
+    #[test]
+    fn the_hire_joins_on_the_first_day_the_offer_promised() {
+        let p = hired_event_payload(&facts(Some(day(2026, 11, 2))), day(2026, 10, 2));
+        assert_eq!(p["join_date"], "2026-11-02", "join date is the offer's start date, not the hire day");
+        assert_eq!(p["start_date"], "2026-11-02");
+        assert_eq!(p["accepted_on"], "2026-10-02");
+    }
+
+    #[test]
+    fn without_an_agreed_start_date_the_hire_joins_on_the_day_of_acceptance() {
+        let p = hired_event_payload(&facts(None), day(2026, 10, 2));
+        assert_eq!(p["join_date"], "2026-10-02");
+        assert!(p["start_date"].is_null(), "no invented start date");
+        assert_eq!(p["accepted_on"], "2026-10-02");
+    }
+
+    #[test]
+    fn the_payload_carries_the_offer_terms_candidate_and_placement() {
+        let p = hired_event_payload(&facts(Some(day(2026, 11, 2))), day(2026, 10, 2));
+        assert_eq!(p["offer_id"], Uuid::from_u128(1).to_string());
+        assert_eq!(p["company_id"], Uuid::from_u128(2).to_string());
+        assert_eq!(p["application_id"], Uuid::from_u128(3).to_string());
+        assert_eq!(p["requisition_id"], Uuid::from_u128(4).to_string());
+        assert_eq!(p["candidate_id"], Uuid::from_u128(5).to_string());
+        assert_eq!(p["first_name"], "Rina");
+        assert_eq!(p["last_name"], "Kusuma");
+        assert_eq!(p["email"], "rina@example.com");
+        assert_eq!(p["phone"], "+62811000111");
+        assert_eq!(p["employment_type"], "permanent");
+        assert_eq!(p["proposed_salary"], "9000000", "salary travels as a decimal string");
+        assert_eq!(p["position_id"], Uuid::from_u128(6).to_string());
+        assert_eq!(p["department_id"], Uuid::from_u128(7).to_string());
+        assert_eq!(p["position_title"], "Payroll analyst");
+    }
+
+    #[test]
+    fn the_payload_key_set_is_pinned() {
+        // The consumers read these keys by name; adding one is fine, but a
+        // rename or a drop must fail here first.
+        let p = hired_event_payload(&facts(None), day(2026, 10, 2));
+        let mut keys: Vec<&str> = p.as_object().unwrap().keys().map(String::as_str).collect();
+        keys.sort_unstable();
+        assert_eq!(
+            keys,
+            vec![
+                "accepted_on",
+                "application_id",
+                "candidate_id",
+                "company_id",
+                "department_id",
+                "email",
+                "employment_type",
+                "first_name",
+                "join_date",
+                "last_name",
+                "offer_id",
+                "phone",
+                "position_id",
+                "position_title",
+                "proposed_salary",
+                "requisition_id",
+                "start_date",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_full_requisition_refusal_is_a_typed_409() {
+        let e = OfferError::NoOpenHeadcount(NoOpenings {
+            requisition_id: Uuid::from_u128(4),
+            headcount: 2,
+            filled: 2,
+        });
+        assert_eq!(e.code(), "no_open_headcount");
+        assert_eq!(e.http_status(), 409);
+        assert!(e.to_string().starts_with("this requisition has no openings left: 2 of 2"));
     }
 }
