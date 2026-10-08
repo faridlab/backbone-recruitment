@@ -16,7 +16,6 @@ pub mod recruitment_stage_api_test;
 pub mod requisition_skill_api_test;
 
 // Re-exports for convenience
-pub use crud_test_base::*;
 pub use candidate_api_test::*;
 pub use interview_api_test::*;
 pub use job_application_api_test::*;

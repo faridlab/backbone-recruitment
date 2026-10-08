@@ -251,6 +251,9 @@ impl super::Entity for JobRequisition {
 }
 
 impl backbone_core::PersistentEntity for JobRequisition {
+    fn write_protected_fields() -> &'static [&'static str] {
+        &["status"]
+    }
     fn entity_id(&self) -> String {
         self.id.to_string()
     }
@@ -287,6 +290,7 @@ impl backbone_orm::EntityRepoMeta for JobRequisition {
         m.insert("position_id".to_string(), "uuid".to_string());
         m.insert("approval_request_id".to_string(), "uuid".to_string());
         m.insert("status".to_string(), "requisition_status".to_string());
+        m.insert("deadline".to_string(), "date".to_string());
         m
     }
     fn search_fields() -> &'static [&'static str] {

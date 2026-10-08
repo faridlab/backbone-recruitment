@@ -42,6 +42,9 @@ pub use interview_service::InterviewService;
 pub use job_application_service::JobApplicationService;
 pub use job_offer_service::JobOfferService;
 pub use job_requisition_service::JobRequisitionService;
+pub use offer_letter_template_service::OfferLetterTemplateService;
+pub use recruitment_stage_service::RecruitmentStageService;
+pub use requisition_skill_service::RequisitionSkillService;
 // <<< CUSTOM
 pub use activity_port::{ActivityAck, ActivityCommand, ActivityRejected, ActivitySink, UnwiredActivitySink};
 pub use interview_write_service::{InterviewError, InterviewWriteService, NewInterview};
@@ -56,9 +59,4 @@ pub use requisition_vacancy::{openings_left, NoOpenings};
 pub use requisition_skill_write_service::{
     RequisitionSkillError, RequisitionSkillWriteService, SkillRequirement,
 };
-// END CUSTOM
-pub use offer_letter_template_service::OfferLetterTemplateService;
-pub use recruitment_stage_service::RecruitmentStageService;
-pub use requisition_skill_service::RequisitionSkillService;
-// <<< CUSTOM
 // END CUSTOM

@@ -4,12 +4,10 @@
 //!
 //! Tests the JobRequisition CRUD API endpoints.
 
-use chrono::Utc;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
 use super::crud_test_base::{CrudTestConfig, GenericCrudTest, TestDataGenerator};
-use crate::integration::framework::ApiTest;
 use crate::integration::helpers::CommonUtils;
 
 // ============================================================================
@@ -21,7 +19,6 @@ pub struct JobRequisitionTestData;
 
 impl TestDataGenerator for JobRequisitionTestData {
     fn generate_create_payload(&self, _utils: &CommonUtils) -> Value {
-        let now = Utc::now().to_rfc3339();
         json!({
             "id": Uuid::new_v4().to_string(),
             "department_id": null,
@@ -31,6 +28,7 @@ impl TestDataGenerator for JobRequisitionTestData {
             "filled_headcount": 1,
             "employment_type": null,
             "status": "draft",
+            "approval_request_id": null,
             "opened_by": Uuid::new_v4().to_string(),
             "budget": null,
             "deadline": null,
@@ -39,7 +37,6 @@ impl TestDataGenerator for JobRequisitionTestData {
     }
 
     fn generate_update_payload(&self, id: &str, _utils: &CommonUtils) -> Value {
-        let now = Utc::now().to_rfc3339();
         json!({
             "id": id,
             "department_id": null,
@@ -49,6 +46,7 @@ impl TestDataGenerator for JobRequisitionTestData {
             "filled_headcount": 1,
             "employment_type": null,
             "status": "draft",
+            "approval_request_id": null,
             "opened_by": Uuid::new_v4().to_string(),
             "budget": null,
             "deadline": null,

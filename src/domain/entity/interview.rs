@@ -223,6 +223,9 @@ impl super::Entity for Interview {
 }
 
 impl backbone_core::PersistentEntity for Interview {
+    fn write_protected_fields() -> &'static [&'static str] {
+        &["status"]
+    }
     fn entity_id(&self) -> String {
         self.id.to_string()
     }
@@ -258,6 +261,7 @@ impl backbone_orm::EntityRepoMeta for Interview {
         m.insert("application_id".to_string(), "uuid".to_string());
         m.insert("interviewer_id".to_string(), "uuid".to_string());
         m.insert("status".to_string(), "interview_status".to_string());
+        m.insert("scheduled_at".to_string(), "timestamptz".to_string());
         m
     }
     fn search_fields() -> &'static [&'static str] {

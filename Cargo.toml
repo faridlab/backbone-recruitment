@@ -1,6 +1,6 @@
 [package]
 name = "backbone-recruitment"
-version = "0.3.32"
+version = "0.4.0"
 edition = "2021"
 description = "Recruitment pipeline: job requisitions with required skills, candidates and applications, stages, interviews, and offers with letter templates"
 license = "MIT OR Apache-2.0"
@@ -20,15 +20,15 @@ path = "src/lib.rs"
 # or `rev = "<commit-sha>"`. Cargo dedupes the git fetch — the repo is only
 # cloned once even though four crates reference it.
 # -----------------------------------------------------------------------------
-backbone-core = { version = "2.7.35", features = ["postgres"] }
-backbone-orm = { version = "2.7.35" }
-backbone-auth = { version = "2.7.35", features = ["axum"] }
-backbone-messaging = { version = "2.7.35" }
+backbone-core = { version = "3.0.0", features = ["postgres"] }
+backbone-orm = { version = "3.0.0" }
+backbone-auth = { version = "3.0.0", features = ["axum"] }
+backbone-messaging = { version = "3.0.0" }
 # Transactional-outbox producer (ADR-005): stages `recruitment.hired` in the same tx as the offer-accept.
 # v2.7.4 is where backbone-outbox 0.2.0 (with the company-RLS fence) ships; the HR composer's [patch]
 # block unifies it onto local HEAD for dev. No features needed on the producer side — `runner`/`
 # multi_tenant` are the relay's concern (backbone-hr-app).
-backbone-outbox = { version = "2.7.35" }
+backbone-outbox = { version = "3.0.0" }
 
 # Core async runtime and serialization
 tokio = { version = "1.0", features = ["full"] }
@@ -99,4 +99,4 @@ rand = "0.8"
 # The hire→employee compound-event flow (ADR-005) crosses into backbone-employee: the integration test
 # drives the producer here, then runs backbone-employee's `RecruitmentHiredHandler` consumer to prove
 # the end-to-end outbox flow + idempotency. Dev-only — production never depends recruitment→employee.
-backbone-employee = { version = "0.2.46" }
+backbone-employee = { version = "0.3.0" }

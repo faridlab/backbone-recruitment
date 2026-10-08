@@ -263,6 +263,10 @@ impl backbone_orm::EntityRepoMeta for JobApplication {
         m.insert("requisition_id".to_string(), "uuid".to_string());
         m.insert("stage_id".to_string(), "uuid".to_string());
         m.insert("last_stage_id".to_string(), "uuid".to_string());
+        m.insert("stage_updated_at".to_string(), "timestamptz".to_string());
+        m.insert("date_closed".to_string(), "timestamptz".to_string());
+        m.insert("refused_at".to_string(), "timestamptz".to_string());
+        m.insert("applied_at".to_string(), "timestamptz".to_string());
         m
     }
     fn search_fields() -> &'static [&'static str] {

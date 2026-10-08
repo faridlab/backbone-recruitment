@@ -10,10 +10,10 @@ use std::sync::Arc;
 
 use super::{
     candidate_handler::create_candidate_routes,
-    interview_handler::create_interview_routes,
+    interview_handler::create_interview_read_routes,
     job_application_handler::create_job_application_routes,
-    job_offer_handler::create_job_offer_routes,
-    job_requisition_handler::create_job_requisition_routes,
+    job_offer_handler::create_job_offer_read_routes,
+    job_requisition_handler::create_job_requisition_read_routes,
     offer_letter_template_handler::create_offer_letter_template_routes,
     recruitment_stage_handler::create_recruitment_stage_routes,
     requisition_skill_handler::create_requisition_skill_routes,
@@ -61,14 +61,14 @@ pub fn configure_routes(services: HttpServices) -> Router {
     Router::new()
         // Candidate routes (12 Backbone endpoints)
         .merge(create_candidate_routes(services.candidate))
-        // Interview routes (12 Backbone endpoints)
-        .merge(create_interview_routes(services.interview))
+        // Interview routes (READ-ONLY mount — hand_set lifecycle; the state field moves only through the module's validated verbs)
+        .merge(create_interview_read_routes(services.interview))
         // JobApplication routes (12 Backbone endpoints)
         .merge(create_job_application_routes(services.job_application))
-        // JobOffer routes (12 Backbone endpoints)
-        .merge(create_job_offer_routes(services.job_offer))
-        // JobRequisition routes (12 Backbone endpoints)
-        .merge(create_job_requisition_routes(services.job_requisition))
+        // JobOffer routes (READ-ONLY mount — hand_set lifecycle; the state field moves only through the module's validated verbs)
+        .merge(create_job_offer_read_routes(services.job_offer))
+        // JobRequisition routes (READ-ONLY mount — hand_set lifecycle; the state field moves only through the module's validated verbs)
+        .merge(create_job_requisition_read_routes(services.job_requisition))
         // OfferLetterTemplate routes (12 Backbone endpoints)
         .merge(create_offer_letter_template_routes(services.offer_letter_template))
         // RecruitmentStage routes (12 Backbone endpoints)
@@ -86,7 +86,7 @@ pub mod individual {
     }
 
     pub fn interview_routes(service: Arc<InterviewService>) -> Router {
-        create_interview_routes(service)
+        create_interview_read_routes(service)
     }
 
     pub fn job_application_routes(service: Arc<JobApplicationService>) -> Router {
@@ -94,11 +94,11 @@ pub mod individual {
     }
 
     pub fn job_offer_routes(service: Arc<JobOfferService>) -> Router {
-        create_job_offer_routes(service)
+        create_job_offer_read_routes(service)
     }
 
     pub fn job_requisition_routes(service: Arc<JobRequisitionService>) -> Router {
-        create_job_requisition_routes(service)
+        create_job_requisition_read_routes(service)
     }
 
     pub fn offer_letter_template_routes(service: Arc<OfferLetterTemplateService>) -> Router {

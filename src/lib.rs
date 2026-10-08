@@ -105,10 +105,10 @@ impl RecruitmentModule {
     pub fn all_crud_routes(&self) -> Router {
         use presentation::http::{
             create_candidate_routes,
-            create_interview_routes,
+            create_interview_read_routes,
             create_job_application_routes,
-            create_job_offer_routes,
-            create_job_requisition_routes,
+            create_job_offer_read_routes,
+            create_job_requisition_read_routes,
             create_offer_letter_template_routes,
             create_recruitment_stage_routes,
             create_requisition_skill_routes,
@@ -116,10 +116,19 @@ impl RecruitmentModule {
 
         Router::new()
             .merge(create_candidate_routes(self.candidate_service.clone()))
-            .merge(create_interview_routes(self.interview_service.clone()))
+            // Interview: hand_set lifecycle — the state field moves only through the
+            // module's validated verbs; generic writes cannot reach it, so only the
+            // read surface mounts here.
+            .merge(create_interview_read_routes(self.interview_service.clone()))
             .merge(create_job_application_routes(self.job_application_service.clone()))
-            .merge(create_job_offer_routes(self.job_offer_service.clone()))
-            .merge(create_job_requisition_routes(self.job_requisition_service.clone()))
+            // JobOffer: hand_set lifecycle — the state field moves only through the
+            // module's validated verbs; generic writes cannot reach it, so only the
+            // read surface mounts here.
+            .merge(create_job_offer_read_routes(self.job_offer_service.clone()))
+            // JobRequisition: hand_set lifecycle — the state field moves only through the
+            // module's validated verbs; generic writes cannot reach it, so only the
+            // read surface mounts here.
+            .merge(create_job_requisition_read_routes(self.job_requisition_service.clone()))
             .merge(create_offer_letter_template_routes(self.offer_letter_template_service.clone()))
             .merge(create_recruitment_stage_routes(self.recruitment_stage_service.clone()))
             .merge(create_requisition_skill_routes(self.requisition_skill_service.clone()))
@@ -290,6 +299,9 @@ impl RecruitmentModuleBuilder {
             job_application_service,
             job_offer_service,
             job_requisition_service,
+            offer_letter_template_service,
+            recruitment_stage_service,
+            requisition_skill_service,
             // <<< CUSTOM
             job_offer_write_service,
             job_application_write_service,
@@ -297,9 +309,6 @@ impl RecruitmentModuleBuilder {
             interview_write_service,
             requisition_skill_write_service,
             // END CUSTOM
-            offer_letter_template_service,
-            recruitment_stage_service,
-            requisition_skill_service,
         })
     }
 }

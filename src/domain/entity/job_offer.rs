@@ -247,6 +247,9 @@ impl super::Entity for JobOffer {
 }
 
 impl backbone_core::PersistentEntity for JobOffer {
+    fn write_protected_fields() -> &'static [&'static str] {
+        &["status"]
+    }
     fn entity_id(&self) -> String {
         self.id.to_string()
     }
@@ -283,6 +286,9 @@ impl backbone_orm::EntityRepoMeta for JobOffer {
         m.insert("application_id".to_string(), "uuid".to_string());
         m.insert("letter_template_id".to_string(), "uuid".to_string());
         m.insert("status".to_string(), "offer_status".to_string());
+        m.insert("offered_at".to_string(), "timestamptz".to_string());
+        m.insert("accepted_at".to_string(), "timestamptz".to_string());
+        m.insert("start_date".to_string(), "date".to_string());
         m
     }
     fn search_fields() -> &'static [&'static str] {

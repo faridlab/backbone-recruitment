@@ -209,9 +209,9 @@ impl JobOfferListResponseDto {
 #[serde(rename_all = "camelCase")]
 pub struct JobOfferSummaryDto {
     pub id: Uuid,
+    pub approval_request_id: Option<Uuid>,
     pub application_id: Uuid,
     pub proposed_salary: Option<Decimal>,
-    pub employment_type: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -242,9 +242,9 @@ impl From<JobOffer> for JobOfferSummaryDto {
         let created_at = backbone_core::PersistentEntity::created_at(&entity);
         Self {
             id: entity.id,
+            approval_request_id: entity.approval_request_id,
             application_id: entity.application_id,
             proposed_salary: entity.proposed_salary,
-            employment_type: entity.employment_type,
             created_at,
         }
     }

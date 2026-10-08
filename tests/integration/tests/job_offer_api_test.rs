@@ -5,11 +5,11 @@
 //! Tests the JobOffer CRUD API endpoints.
 
 use chrono::Utc;
+use crate::integration::framework::ApiTest;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
 use super::crud_test_base::{CrudTestConfig, GenericCrudTest, TestDataGenerator};
-use crate::integration::framework::ApiTest;
 use crate::integration::helpers::CommonUtils;
 
 // ============================================================================
@@ -24,6 +24,7 @@ impl TestDataGenerator for JobOfferTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": Uuid::new_v4().to_string(),
+            "approval_request_id": null,
             "application_id": Uuid::new_v4().to_string(),
             "proposed_salary": null,
             "employment_type": null,
@@ -31,6 +32,7 @@ impl TestDataGenerator for JobOfferTestData {
             "status": "draft",
             "offered_at": now,
             "accepted_at": now,
+            "start_date": null,
             "metadata": json!({}),
         })
     }
@@ -39,6 +41,7 @@ impl TestDataGenerator for JobOfferTestData {
         let now = Utc::now().to_rfc3339();
         json!({
             "id": id,
+            "approval_request_id": null,
             "application_id": Uuid::new_v4().to_string(),
             "proposed_salary": null,
             "employment_type": null,
@@ -46,6 +49,7 @@ impl TestDataGenerator for JobOfferTestData {
             "status": "draft",
             "offered_at": now,
             "accepted_at": now,
+            "start_date": null,
             "metadata": json!({}),
         })
     }

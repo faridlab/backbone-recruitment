@@ -36,7 +36,7 @@ impl Seeder for SeedJobRequisitionSeeder {
     }
 
     fn order(&self) -> i32 {
-        5
+        2
     }
 
     async fn should_run(&self, pool: &PgPool) -> Result<bool> {
