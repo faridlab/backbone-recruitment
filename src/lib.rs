@@ -178,7 +178,8 @@ impl RecruitmentModule {
 /// Builder for RecruitmentModule
 pub struct RecruitmentModuleBuilder {
     db_pool: Option<PgPool>,
-    // <<< CUSTOM - optional outbound seams (default: unwired, fail-closed)
+    // <<< CUSTOM BUILDER FIELDS
+    // optional outbound seams (default: unwired, fail-closed)
     activity_sink: Option<Arc<dyn application::service::ActivitySink>>,
     letter_sink: Option<Arc<dyn application::service::OfferLetterSink>>,
     // END CUSTOM
@@ -189,7 +190,8 @@ impl RecruitmentModuleBuilder {
     pub fn new() -> Self {
         Self {
             db_pool: None,
-            // <<< CUSTOM - optional outbound seams (default: unwired, fail-closed)
+            // <<< CUSTOM BUILDER DEFAULTS
+            // optional outbound seams (default: unwired, fail-closed)
             activity_sink: None,
             letter_sink: None,
             // END CUSTOM
@@ -249,11 +251,6 @@ impl RecruitmentModuleBuilder {
 
         // RecruitmentStage service
         let recruitment_stage_repository = Arc::new(RecruitmentStageRepository::new(db_pool.clone()));
-        let requisition_lifecycle = Arc::new(
-            application::service::requisition_lifecycle::RequisitionLifecycleService::new(
-                db_pool.clone(),
-            ),
-        );
         let recruitment_stage_service = Arc::new(RecruitmentStageService::with_repository(recruitment_stage_repository.clone()));
 
         // RequisitionSkill service
@@ -261,6 +258,11 @@ impl RecruitmentModuleBuilder {
         let requisition_skill_service = Arc::new(RequisitionSkillService::with_repository(requisition_skill_repository.clone()));
 
         // <<< CUSTOM
+        let requisition_lifecycle = Arc::new(
+            application::service::requisition_lifecycle::RequisitionLifecycleService::new(
+                db_pool.clone(),
+            ),
+        );
         // Hand-written write services, bound to the same pool as the repos. Each opens its own
         // scoped transaction per verb; no shared mutable state, so an Arc is purely for cheap reuse.
         // Outbound seams default to unwired (fail-closed) unless the builder wired real adapters.
