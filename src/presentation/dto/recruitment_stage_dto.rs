@@ -273,7 +273,7 @@ impl backbone_core::ApplyUpdateDto<UpdateRecruitmentStageDto> for RecruitmentSta
 // Custom DTOs
 // =============================================================================
 
-// <<< CUSTOM DTOs
 // Add custom DTOs specific to RecruitmentStage here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
+

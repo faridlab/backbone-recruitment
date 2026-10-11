@@ -14,10 +14,6 @@ pub type RequisitionSkillValidator = EntityValidator<RequisitionSkill>;
 /// Build a validator for RequisitionSkill with all schema-defined field rules.
 pub fn requisition_skill_validator() -> RequisitionSkillValidator {
     EntityValidator::new()
-    // <<< CUSTOM RULES
-    // END CUSTOM RULES
         // No schema-derived rules — add custom rules above.
 }
 
-// <<< CUSTOM
-// END CUSTOM

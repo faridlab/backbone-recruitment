@@ -18,5 +18,3 @@ use crate::domain::entity::RecruitmentStage;
 /// service. `PermitAllPolicy` is the safe default until then.
 pub type RecruitmentStageDomainPolicy = PermitAllPolicy<RecruitmentStage>;
 
-// <<< CUSTOM
-// END CUSTOM

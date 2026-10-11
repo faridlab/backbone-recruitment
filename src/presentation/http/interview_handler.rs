@@ -187,3 +187,4 @@ pub fn create_protected_interview_routes<A: AuthMiddleware + Send + Sync + 'stat
             }
         }))
 }
+

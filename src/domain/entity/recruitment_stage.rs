@@ -166,8 +166,6 @@ impl RecruitmentStage {
         }
     }
 
-    // <<< CUSTOM METHODS START >>>
-    // <<< CUSTOM METHODS END >>>
 }
 
 impl super::Entity for RecruitmentStage {

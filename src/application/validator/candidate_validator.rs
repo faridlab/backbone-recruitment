@@ -21,9 +21,5 @@ pub fn candidate_validator() -> CandidateValidator {
         .rule(OptionalNotBlank::new("phone", |e: &Candidate| e.phone.as_deref()))
         .rule(OptionalNotBlank::new("current_employer", |e: &Candidate| e.current_employer.as_deref()))
         .rule(OptionalNotBlank::new("resume_url", |e: &Candidate| e.resume_url.as_deref()))
-    // <<< CUSTOM RULES
-    // END CUSTOM RULES
 }
 
-// <<< CUSTOM
-// END CUSTOM

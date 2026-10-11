@@ -32,5 +32,3 @@ pub type JobRequisitionService = GenericCrudService<
     JobRequisitionRepository,
 >;
 
-// <<< CUSTOM
-// END CUSTOM

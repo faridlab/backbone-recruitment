@@ -290,7 +290,7 @@ impl backbone_core::ApplyUpdateDto<UpdateCandidateDto> for Candidate {
 // Custom DTOs
 // =============================================================================
 
-// <<< CUSTOM DTOs
 // Add custom DTOs specific to Candidate here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
+

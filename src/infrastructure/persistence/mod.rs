@@ -14,8 +14,6 @@ mod recruitment_stage_repository;
 mod requisition_skill_repository;
 
 // Custom persistence modules
-// <<< CUSTOM
-// END CUSTOM
 
 // Re-exports
 pub use candidate_repository::CandidateRepository;
@@ -35,5 +33,3 @@ pub use backbone_orm::repository::{
 };
 
 // Re-export custom persistence types
-// <<< CUSTOM
-// END CUSTOM

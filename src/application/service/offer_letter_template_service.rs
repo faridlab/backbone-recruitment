@@ -32,5 +32,3 @@ pub type OfferLetterTemplateService = GenericCrudService<
     OfferLetterTemplateRepository,
 >;
 
-// <<< CUSTOM
-// END CUSTOM

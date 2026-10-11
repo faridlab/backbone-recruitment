@@ -186,3 +186,4 @@ pub fn create_protected_recruitment_stage_routes<A: AuthMiddleware + Send + Sync
             }
         }))
 }
+

@@ -18,5 +18,3 @@ use crate::domain::entity::RequisitionSkill;
 /// service. `PermitAllPolicy` is the safe default until then.
 pub type RequisitionSkillDomainPolicy = PermitAllPolicy<RequisitionSkill>;
 
-// <<< CUSTOM
-// END CUSTOM

@@ -32,5 +32,3 @@ pub type RecruitmentStageService = GenericCrudService<
     RecruitmentStageRepository,
 >;
 
-// <<< CUSTOM
-// END CUSTOM

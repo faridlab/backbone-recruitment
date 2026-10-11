@@ -11,8 +11,6 @@ use crate::domain::entity::JobRequisition;
 /// enum containing a `Crud(CrudEvent<JobRequisition>)` variant.
 pub type JobRequisitionEvent = CrudEvent<JobRequisition>;
 
-// <<< CUSTOM
-// END CUSTOM
 
 use backbone_messaging::{CrudEventPublisher, NoOpCrudEventPublisher};
 use std::sync::Arc;

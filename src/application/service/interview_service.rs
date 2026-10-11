@@ -32,5 +32,3 @@ pub type InterviewService = GenericCrudService<
     InterviewRepository,
 >;
 
-// <<< CUSTOM
-// END CUSTOM

@@ -16,9 +16,5 @@ pub type JobApplicationValidator = EntityValidator<JobApplication>;
 pub fn job_application_validator() -> JobApplicationValidator {
     EntityValidator::new()
         .rule(OptionalNotBlank::new("refuse_reason", |e: &JobApplication| e.refuse_reason.as_deref()))
-    // <<< CUSTOM RULES
-    // END CUSTOM RULES
 }
 
-// <<< CUSTOM
-// END CUSTOM

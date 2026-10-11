@@ -323,7 +323,7 @@ impl backbone_core::ApplyUpdateDto<UpdateJobApplicationDto> for JobApplication {
 // Custom DTOs
 // =============================================================================
 
-// <<< CUSTOM DTOs
 // Add custom DTOs specific to JobApplication here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
+

@@ -18,5 +18,3 @@ use crate::domain::entity::JobOffer;
 /// service. `PermitAllPolicy` is the safe default until then.
 pub type JobOfferDomainPolicy = PermitAllPolicy<JobOffer>;
 
-// <<< CUSTOM
-// END CUSTOM

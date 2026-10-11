@@ -16,8 +16,6 @@ pub mod offer_letter_template_service;
 pub mod recruitment_stage_service;
 pub mod requisition_skill_service;
 
-// <<< CUSTOM
-// END CUSTOM
 
 pub use candidate_service::CandidateService;
 pub use interview_service::InterviewService;
@@ -27,8 +25,6 @@ pub use job_requisition_service::JobRequisitionService;
 pub use offer_letter_template_service::OfferLetterTemplateService;
 pub use recruitment_stage_service::RecruitmentStageService;
 pub use requisition_skill_service::RequisitionSkillService;
-// <<< CUSTOM
-// END CUSTOM
 
 // This directory's extension (hand-written; ADR-0031).
 include!("mod.ext.rs");

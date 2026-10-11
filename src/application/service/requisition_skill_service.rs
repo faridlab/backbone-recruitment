@@ -32,5 +32,3 @@ pub type RequisitionSkillService = GenericCrudService<
     RequisitionSkillRepository,
 >;
 
-// <<< CUSTOM
-// END CUSTOM

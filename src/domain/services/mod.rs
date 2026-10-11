@@ -20,5 +20,3 @@ pub use offer_letter_template_domain_policy::OfferLetterTemplateDomainPolicy;
 pub use recruitment_stage_domain_policy::RecruitmentStageDomainPolicy;
 pub use requisition_skill_domain_policy::RequisitionSkillDomainPolicy;
 
-// <<< CUSTOM
-// END CUSTOM

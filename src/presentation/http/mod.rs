@@ -14,8 +14,6 @@ pub mod offer_letter_template_handler;
 pub mod recruitment_stage_handler;
 pub mod requisition_skill_handler;
 
-// <<< CUSTOM
-// END CUSTOM
 
 // Re-exports
 pub use candidate_handler::{create_candidate_routes, create_candidate_read_routes, create_candidate_write_routes};
@@ -26,8 +24,6 @@ pub use job_requisition_handler::{create_job_requisition_routes, create_job_requ
 pub use offer_letter_template_handler::{create_offer_letter_template_routes, create_offer_letter_template_read_routes, create_offer_letter_template_write_routes};
 pub use recruitment_stage_handler::{create_recruitment_stage_routes, create_recruitment_stage_read_routes, create_recruitment_stage_write_routes};
 pub use requisition_skill_handler::{create_requisition_skill_routes, create_requisition_skill_read_routes, create_requisition_skill_write_routes};
-// <<< CUSTOM
-// END CUSTOM
 
 // This directory's extension (hand-written; ADR-0031).
 include!("mod.ext.rs");

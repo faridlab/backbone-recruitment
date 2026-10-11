@@ -186,3 +186,4 @@ pub fn create_protected_offer_letter_template_routes<A: AuthMiddleware + Send + 
             }
         }))
 }
+

@@ -307,7 +307,7 @@ impl backbone_core::ApplyUpdateDto<UpdateInterviewDto> for Interview {
 // Custom DTOs
 // =============================================================================
 
-// <<< CUSTOM DTOs
 // Add custom DTOs specific to Interview here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
+

@@ -250,7 +250,7 @@ impl backbone_core::ApplyUpdateDto<UpdateRequisitionSkillDto> for RequisitionSki
 // Custom DTOs
 // =============================================================================
 
-// <<< CUSTOM DTOs
 // Add custom DTOs specific to RequisitionSkill here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
+

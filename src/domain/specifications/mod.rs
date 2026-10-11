@@ -15,5 +15,3 @@ pub mod offer_letter_template_specification;
 pub mod recruitment_stage_specification;
 pub mod requisition_skill_specification;
 
-// <<< CUSTOM
-// END CUSTOM

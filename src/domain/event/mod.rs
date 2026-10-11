@@ -36,5 +36,3 @@ pub use recruitment_stage_event_handlers::RecruitmentStageEventHandler;
 pub use requisition_skill_events::{RequisitionSkillEvent, RequisitionSkillEventPublisher, NoopRequisitionSkillEventPublisher};
 pub use requisition_skill_event_handlers::RequisitionSkillEventHandler;
 
-// <<< CUSTOM
-// END CUSTOM

@@ -17,9 +17,5 @@ pub fn interview_validator() -> InterviewValidator {
     EntityValidator::new()
         .rule(OptionalNotBlank::new("interview_format", |e: &Interview| e.interview_format.as_deref()))
         .rule(OptionalNotBlank::new("feedback", |e: &Interview| e.feedback.as_deref()))
-    // <<< CUSTOM RULES
-    // END CUSTOM RULES
 }
 
-// <<< CUSTOM
-// END CUSTOM

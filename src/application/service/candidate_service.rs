@@ -32,5 +32,3 @@ pub type CandidateService = GenericCrudService<
     CandidateRepository,
 >;
 
-// <<< CUSTOM
-// END CUSTOM

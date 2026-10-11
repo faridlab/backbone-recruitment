@@ -16,9 +16,5 @@ pub type JobOfferValidator = EntityValidator<JobOffer>;
 pub fn job_offer_validator() -> JobOfferValidator {
     EntityValidator::new()
         .rule(OptionalNotBlank::new("employment_type", |e: &JobOffer| e.employment_type.as_deref()))
-    // <<< CUSTOM RULES
-    // END CUSTOM RULES
 }
 
-// <<< CUSTOM
-// END CUSTOM

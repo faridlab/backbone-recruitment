@@ -18,9 +18,5 @@ pub fn recruitment_stage_validator() -> RecruitmentStageValidator {
         .rule(RequiredString::new("name", |e: &RecruitmentStage| &e.name))
         .rule(NonNegative::new("sequence", |e: &RecruitmentStage| e.sequence as i64))
         .rule(OptionalNotBlank::new("description", |e: &RecruitmentStage| e.description.as_deref()))
-    // <<< CUSTOM RULES
-    // END CUSTOM RULES
 }
 
-// <<< CUSTOM
-// END CUSTOM

@@ -341,7 +341,7 @@ impl backbone_core::ApplyUpdateDto<UpdateJobRequisitionDto> for JobRequisition {
 // Custom DTOs
 // =============================================================================
 
-// <<< CUSTOM DTOs
 // Add custom DTOs specific to JobRequisition here.
 // This section will be preserved during regeneration.
 // >>> END CUSTOM DTOs
+

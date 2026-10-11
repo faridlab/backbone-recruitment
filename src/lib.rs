@@ -24,8 +24,6 @@ pub mod application;
 pub mod presentation;
 pub mod seeders;
 pub mod exports;
-// <<< CUSTOM MODULES
-// END CUSTOM
 
 // The module's extension (hand-written; ADR-0031).
 #[path = "lib.ext.rs"]
@@ -83,8 +81,6 @@ pub struct RecruitmentModule {
     pub(crate) requisition_skill_service: Arc<RequisitionSkillService>,
     /// The module's extension state (`lib.ext.rs`); its fields read through `Deref`.
     pub(crate) ext: ModuleExt,
-    // <<< CUSTOM FIELDS
-    // END CUSTOM
 }
 
 impl std::ops::Deref for RecruitmentModule {
@@ -203,8 +199,6 @@ impl RecruitmentModule {
             .merge(create_requisition_skill_read_routes(self.requisition_skill_service.clone()))
     }
 
-    // <<< CUSTOM METHODS
-    // END CUSTOM
 }
 
 /// Builder for RecruitmentModule
@@ -212,8 +206,6 @@ pub struct RecruitmentModuleBuilder {
     db_pool: Option<PgPool>,
     /// The builder's extension state (`lib.ext.rs`); its fields read through `Deref`.
     ext: ModuleBuilderExt,
-    // <<< CUSTOM BUILDER FIELDS
-    // END CUSTOM
 }
 
 impl std::ops::Deref for RecruitmentModuleBuilder {
@@ -235,8 +227,6 @@ impl RecruitmentModuleBuilder {
         Self {
             db_pool: None,
             ext: Default::default(),
-            // <<< CUSTOM BUILDER DEFAULTS
-            // END CUSTOM
         }
     }
 
@@ -246,8 +236,6 @@ impl RecruitmentModuleBuilder {
         self
     }
 
-    // <<< CUSTOM - custom builder methods
-    // END CUSTOM
 
     /// Build the module with configured dependencies
     pub fn build(self) -> anyhow::Result<RecruitmentModule> {
@@ -286,8 +274,6 @@ impl RecruitmentModuleBuilder {
         let requisition_skill_repository = Arc::new(RequisitionSkillRepository::new(db_pool.clone()));
         let requisition_skill_service = Arc::new(RequisitionSkillService::with_repository(requisition_skill_repository.clone()));
 
-        // <<< CUSTOM
-        // END CUSTOM
 
         // The extension builds its own state from what the generated build made.
         let ext = self.ext.build(&ModuleParts {
@@ -320,8 +306,6 @@ impl RecruitmentModuleBuilder {
             recruitment_stage_service,
             requisition_skill_service,
             ext,
-            // <<< CUSTOM
-            // END CUSTOM
         })
     }
 }

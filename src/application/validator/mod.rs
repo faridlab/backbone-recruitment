@@ -23,5 +23,3 @@ pub use offer_letter_template_validator::{OfferLetterTemplateValidator, offer_le
 pub use recruitment_stage_validator::{RecruitmentStageValidator, recruitment_stage_validator};
 pub use requisition_skill_validator::{RequisitionSkillValidator, requisition_skill_validator};
 
-// <<< CUSTOM
-// END CUSTOM

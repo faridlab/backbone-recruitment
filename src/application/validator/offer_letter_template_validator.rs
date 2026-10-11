@@ -18,9 +18,5 @@ pub fn offer_letter_template_validator() -> OfferLetterTemplateValidator {
         .rule(RequiredString::new("name", |e: &OfferLetterTemplate| &e.name))
         .rule(RequiredString::new("subject", |e: &OfferLetterTemplate| &e.subject))
         .rule(RequiredString::new("body", |e: &OfferLetterTemplate| &e.body))
-    // <<< CUSTOM RULES
-    // END CUSTOM RULES
 }
 
-// <<< CUSTOM
-// END CUSTOM
