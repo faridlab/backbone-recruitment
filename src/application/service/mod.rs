@@ -17,24 +17,6 @@ pub mod recruitment_stage_service;
 pub mod requisition_skill_service;
 
 // <<< CUSTOM
-// Hand-written write services (user-owned, never regenerated):
-// - offer verbs + the hire-handoff producer (offer→accepted + `recruitment.hired`
-//   outbox emit, in one tx) and the offer-letter seam;
-// - stage-driven application transitions (the pipeline's one door, vacancy coupling);
-// - interview scheduling verbs + the interviewer-activity seam;
-// - requisition skill requirements (validated against the learning module's skills).
-pub mod activity_port;
-pub mod interview_write_service;
-pub mod job_application_write_service;
-pub mod job_offer_write_service;
-pub mod recruitment_approvals_port;
-pub mod requisition_lifecycle;
-// The vacancy rule (openings = headcount − filled) the application and offer
-// verbs refuse on before a candidate is put forward on a full requisition.
-pub mod requisition_vacancy;
-pub mod letter_port;
-pub mod offer_letter_render;
-pub mod requisition_skill_write_service;
 // END CUSTOM
 
 pub use candidate_service::CandidateService;
@@ -46,17 +28,7 @@ pub use offer_letter_template_service::OfferLetterTemplateService;
 pub use recruitment_stage_service::RecruitmentStageService;
 pub use requisition_skill_service::RequisitionSkillService;
 // <<< CUSTOM
-pub use activity_port::{ActivityAck, ActivityCommand, ActivityRejected, ActivitySink, UnwiredActivitySink};
-pub use interview_write_service::{InterviewError, InterviewWriteService, NewInterview};
-pub use job_application_write_service::{
-    ApplicationError, JobApplicationWriteService, NewJobApplication, PipelineStatus,
-};
-pub use job_offer_write_service::{
-    ExtendOptions, JobOfferWriteService, NewJobOffer, OfferError, HIRED_EVENT_TYPE,
-};
-pub use letter_port::{LetterAck, LetterMessage, LetterRejected, OfferLetterSink, UnwiredOfferLetterSink};
-pub use requisition_vacancy::{openings_left, NoOpenings};
-pub use requisition_skill_write_service::{
-    RequisitionSkillError, RequisitionSkillWriteService, SkillRequirement,
-};
 // END CUSTOM
+
+// This directory's extension (hand-written; ADR-0031).
+include!("mod.ext.rs");

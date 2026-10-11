@@ -25,8 +25,17 @@ pub mod presentation;
 pub mod seeders;
 pub mod exports;
 // <<< CUSTOM MODULES
-pub mod request_pool;
 // END CUSTOM
+
+// The module's extension (hand-written; ADR-0031).
+#[path = "lib.ext.rs"]
+mod lib_ext;
+pub use lib_ext::*;
+/// This crate's module and builder under fixed names, for the extension's `impl` blocks.
+#[allow(dead_code)]
+pub(crate) type ThisModule = RecruitmentModule;
+#[allow(dead_code)]
+pub(crate) type ThisModuleBuilder = RecruitmentModuleBuilder;
 
 // Re-exports for convenience - Domain entities
 pub use domain::entity::*;
@@ -72,23 +81,45 @@ pub struct RecruitmentModule {
     pub(crate) offer_letter_template_service: Arc<OfferLetterTemplateService>,
     pub(crate) recruitment_stage_service: Arc<RecruitmentStageService>,
     pub(crate) requisition_skill_service: Arc<RequisitionSkillService>,
+    /// The module's extension state (`lib.ext.rs`); its fields read through `Deref`.
+    pub(crate) ext: ModuleExt,
     // <<< CUSTOM FIELDS
-    /// Hand-written write services, public so the composer / tests can drive the verbs directly.
-    /// - offers: extend / hire (the hire-handoff producer: offer→accepted + `recruitment.hired`
-    ///   outbox emit, atomically) / decline / withdraw, plus the offer-letter seam.
-    /// - applications: the stage-driven transition engine (create / move_stage / refuse) owning
-    ///   the requisition vacancy coupling.
-    /// - interviews: schedule / complete / cancel, plus the interviewer-activity seam.
-    /// - requisition skills: set / list, validated against the learning module's skills.
-    pub job_offer_write_service: Arc<application::service::JobOfferWriteService>,
-    pub job_application_write_service: Arc<application::service::JobApplicationWriteService>,
-    /// The requisition open lifecycle (engine-gated draft→open) —
-    /// user-owned, not schema-derived.
-    pub requisition_lifecycle:
-        Arc<application::service::requisition_lifecycle::RequisitionLifecycleService>,
-    pub interview_write_service: Arc<application::service::InterviewWriteService>,
-    pub requisition_skill_write_service: Arc<application::service::RequisitionSkillWriteService>,
     // END CUSTOM
+}
+
+impl std::ops::Deref for RecruitmentModule {
+    type Target = ModuleExt;
+    fn deref(&self) -> &Self::Target {
+        &self.ext
+    }
+}
+
+impl std::ops::DerefMut for RecruitmentModule {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.ext
+    }
+}
+
+/// What the extension's `build` hook receives from the generated build (ADR-0031).
+#[allow(dead_code)]
+pub(crate) struct ModuleParts<'a> {
+    pub(crate) db_pool: &'a PgPool,
+    pub(crate) candidate_service: &'a Arc<CandidateService>,
+    pub(crate) candidate_repository: &'a Arc<CandidateRepository>,
+    pub(crate) interview_service: &'a Arc<InterviewService>,
+    pub(crate) interview_repository: &'a Arc<InterviewRepository>,
+    pub(crate) job_application_service: &'a Arc<JobApplicationService>,
+    pub(crate) job_application_repository: &'a Arc<JobApplicationRepository>,
+    pub(crate) job_offer_service: &'a Arc<JobOfferService>,
+    pub(crate) job_offer_repository: &'a Arc<JobOfferRepository>,
+    pub(crate) job_requisition_service: &'a Arc<JobRequisitionService>,
+    pub(crate) job_requisition_repository: &'a Arc<JobRequisitionRepository>,
+    pub(crate) offer_letter_template_service: &'a Arc<OfferLetterTemplateService>,
+    pub(crate) offer_letter_template_repository: &'a Arc<OfferLetterTemplateRepository>,
+    pub(crate) recruitment_stage_service: &'a Arc<RecruitmentStageService>,
+    pub(crate) recruitment_stage_repository: &'a Arc<RecruitmentStageRepository>,
+    pub(crate) requisition_skill_service: &'a Arc<RequisitionSkillService>,
+    pub(crate) requisition_skill_repository: &'a Arc<RequisitionSkillRepository>,
 }
 
 impl RecruitmentModule {
@@ -173,25 +204,29 @@ impl RecruitmentModule {
     }
 
     // <<< CUSTOM METHODS
-    /// The guarded composition: read-only generic CRUD for every entity plus
-    /// the validated verbs (stage moves, refusals, offer lifecycle, interview
-    /// scheduling, skill sets). **Prefer this over `all_crud_routes()` for any
-    /// real deployment** — generic writes on applications/offers/interviews
-    /// would bypass the transition invariants.
-    pub fn guarded_routes(&self) -> Router {
-        presentation::http::guarded_routes::create_guarded_recruitment_routes(self)
-    }
     // END CUSTOM
 }
 
 /// Builder for RecruitmentModule
 pub struct RecruitmentModuleBuilder {
     db_pool: Option<PgPool>,
+    /// The builder's extension state (`lib.ext.rs`); its fields read through `Deref`.
+    ext: ModuleBuilderExt,
     // <<< CUSTOM BUILDER FIELDS
-    // optional outbound seams (default: unwired, fail-closed)
-    activity_sink: Option<Arc<dyn application::service::ActivitySink>>,
-    letter_sink: Option<Arc<dyn application::service::OfferLetterSink>>,
     // END CUSTOM
+}
+
+impl std::ops::Deref for RecruitmentModuleBuilder {
+    type Target = ModuleBuilderExt;
+    fn deref(&self) -> &Self::Target {
+        &self.ext
+    }
+}
+
+impl std::ops::DerefMut for RecruitmentModuleBuilder {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.ext
+    }
 }
 
 impl RecruitmentModuleBuilder {
@@ -199,10 +234,8 @@ impl RecruitmentModuleBuilder {
     pub fn new() -> Self {
         Self {
             db_pool: None,
+            ext: Default::default(),
             // <<< CUSTOM BUILDER DEFAULTS
-            // optional outbound seams (default: unwired, fail-closed)
-            activity_sink: None,
-            letter_sink: None,
             // END CUSTOM
         }
     }
@@ -214,19 +247,6 @@ impl RecruitmentModuleBuilder {
     }
 
     // <<< CUSTOM - custom builder methods
-    /// Wire a real activity adapter (interviewer notifications). Without one,
-    /// a scheduling request that explicitly asks to notify fails closed.
-    pub fn with_activity_sink(mut self, sink: Arc<dyn application::service::ActivitySink>) -> Self {
-        self.activity_sink = Some(sink);
-        self
-    }
-
-    /// Wire a real offer-letter adapter. Without one, extending an offer that
-    /// references a letter template fails closed.
-    pub fn with_letter_sink(mut self, sink: Arc<dyn application::service::OfferLetterSink>) -> Self {
-        self.letter_sink = Some(sink);
-        self
-    }
     // END CUSTOM
 
     /// Build the module with configured dependencies
@@ -267,31 +287,28 @@ impl RecruitmentModuleBuilder {
         let requisition_skill_service = Arc::new(RequisitionSkillService::with_repository(requisition_skill_repository.clone()));
 
         // <<< CUSTOM
-        let requisition_lifecycle = Arc::new(
-            application::service::requisition_lifecycle::RequisitionLifecycleService::new(
-                db_pool.clone(),
-            ),
-        );
-        // Hand-written write services, bound to the same pool as the repos. Each opens its own
-        // scoped transaction per verb; no shared mutable state, so an Arc is purely for cheap reuse.
-        // Outbound seams default to unwired (fail-closed) unless the builder wired real adapters.
-        let unwired_activity: Arc<dyn application::service::ActivitySink> =
-            Arc::new(application::service::UnwiredActivitySink);
-        let unwired_letters: Arc<dyn application::service::OfferLetterSink> =
-            Arc::new(application::service::UnwiredOfferLetterSink);
-        let activity_sink = self.activity_sink.clone().unwrap_or(unwired_activity);
-        let letter_sink = self.letter_sink.clone().unwrap_or(unwired_letters);
-        let job_offer_write_service = Arc::new(
-            application::service::JobOfferWriteService::with_letter_sink(db_pool.clone(), letter_sink),
-        );
-        let job_application_write_service =
-            Arc::new(application::service::JobApplicationWriteService::new(db_pool.clone()));
-        let interview_write_service = Arc::new(
-            application::service::InterviewWriteService::with_activity_sink(db_pool.clone(), activity_sink),
-        );
-        let requisition_skill_write_service =
-            Arc::new(application::service::RequisitionSkillWriteService::new(db_pool.clone()));
         // END CUSTOM
+
+        // The extension builds its own state from what the generated build made.
+        let ext = self.ext.build(&ModuleParts {
+            db_pool: &db_pool,
+            candidate_service: &candidate_service,
+            candidate_repository: &candidate_repository,
+            interview_service: &interview_service,
+            interview_repository: &interview_repository,
+            job_application_service: &job_application_service,
+            job_application_repository: &job_application_repository,
+            job_offer_service: &job_offer_service,
+            job_offer_repository: &job_offer_repository,
+            job_requisition_service: &job_requisition_service,
+            job_requisition_repository: &job_requisition_repository,
+            offer_letter_template_service: &offer_letter_template_service,
+            offer_letter_template_repository: &offer_letter_template_repository,
+            recruitment_stage_service: &recruitment_stage_service,
+            recruitment_stage_repository: &recruitment_stage_repository,
+            requisition_skill_service: &requisition_skill_service,
+            requisition_skill_repository: &requisition_skill_repository,
+        })?;
 
         Ok(RecruitmentModule {
             candidate_service,
@@ -302,12 +319,8 @@ impl RecruitmentModuleBuilder {
             offer_letter_template_service,
             recruitment_stage_service,
             requisition_skill_service,
+            ext,
             // <<< CUSTOM
-            job_offer_write_service,
-            job_application_write_service,
-            requisition_lifecycle,
-            interview_write_service,
-            requisition_skill_write_service,
             // END CUSTOM
         })
     }
@@ -318,3 +331,6 @@ impl Default for RecruitmentModuleBuilder {
         Self::new()
     }
 }
+
+// This directory's extension (hand-written; ADR-0031).
+include!("mod.ext.rs");
