@@ -56,7 +56,7 @@ impl backbone_core::write_guard::WriteGuard<Interview> for InterviewRowRules {
         };
         let row = &row;
         let old = ctx.before.and_then(|b| serde_json::to_value(b).ok());
-        let mut shadow = Vec::new();
+        let shadow = Vec::new();
         let mut refuse = Vec::new();
         // `application_id_required` (@required on Interview.application_id)
         if (create || (update && r::changed(old.as_ref(), row, &["application_id"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "application_id")), r::not(r::is_empty(r::trim(r::field(row, "application_id")))))) {
@@ -68,15 +68,15 @@ impl backbone_core::write_guard::WriteGuard<Interview> for InterviewRowRules {
         }
         // `round_non_negative` (@non_negative on Interview.round)
         if (create || (update && r::changed(old.as_ref(), row, &["round"]))) && !r::holds(&r::ge(r::field(row, "round"), r::Val::Num(0.0_f64))) {
-            shadow.push(Violation::new("round", "non_negative", "round must not be negative"));
+            refuse.push(Violation::new("round", "non_negative", "round must not be negative"));
         }
         // `interview_format_max_length` (@length(max=40) on Interview.interview_format)
         if (create || (update && r::changed(old.as_ref(), row, &["interview_format"]))) && !r::holds(&r::le(r::length(r::field(row, "interview_format")), r::Val::Num(40.0_f64))) {
-            shadow.push(Violation::new("interview_format", "max_length", "interview_format must be at most 40 characters").with_param("max", 40_i64));
+            refuse.push(Violation::new("interview_format", "max_length", "interview_format must be at most 40 characters").with_param("max", 40_i64));
         }
         // `rating_non_negative` (@non_negative on Interview.rating)
         if (create || (update && r::changed(old.as_ref(), row, &["rating"]))) && !r::holds(&r::ge(r::field(row, "rating"), r::Val::Num(0.0_f64))) {
-            shadow.push(Violation::new("rating", "non_negative", "rating must not be negative"));
+            refuse.push(Violation::new("rating", "non_negative", "rating must not be negative"));
         }
         GuardOutcome { refuse, shadow }
     }

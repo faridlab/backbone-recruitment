@@ -56,7 +56,7 @@ impl backbone_core::write_guard::WriteGuard<Candidate> for CandidateRowRules {
         };
         let row = &row;
         let old = ctx.before.and_then(|b| serde_json::to_value(b).ok());
-        let mut shadow = Vec::new();
+        let shadow = Vec::new();
         let mut refuse = Vec::new();
         // `first_name_required` (@required on Candidate.first_name)
         if (create || (update && r::changed(old.as_ref(), row, &["first_name"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "first_name")), r::not(r::is_empty(r::trim(r::field(row, "first_name")))))) {
@@ -64,27 +64,27 @@ impl backbone_core::write_guard::WriteGuard<Candidate> for CandidateRowRules {
         }
         // `first_name_max_length` (@length(max=120) on Candidate.first_name)
         if (create || (update && r::changed(old.as_ref(), row, &["first_name"]))) && !r::holds(&r::le(r::length(r::field(row, "first_name")), r::Val::Num(120.0_f64))) {
-            shadow.push(Violation::new("first_name", "max_length", "first_name must be at most 120 characters").with_param("max", 120_i64));
+            refuse.push(Violation::new("first_name", "max_length", "first_name must be at most 120 characters").with_param("max", 120_i64));
         }
         // `last_name_max_length` (@length(max=120) on Candidate.last_name)
         if (create || (update && r::changed(old.as_ref(), row, &["last_name"]))) && !r::holds(&r::le(r::length(r::field(row, "last_name")), r::Val::Num(120.0_f64))) {
-            shadow.push(Violation::new("last_name", "max_length", "last_name must be at most 120 characters").with_param("max", 120_i64));
+            refuse.push(Violation::new("last_name", "max_length", "last_name must be at most 120 characters").with_param("max", 120_i64));
         }
         // `email_max_length` (@length(max=255) on Candidate.email)
         if (create || (update && r::changed(old.as_ref(), row, &["email"]))) && !r::holds(&r::le(r::length(r::field(row, "email")), r::Val::Num(255.0_f64))) {
-            shadow.push(Violation::new("email", "max_length", "email must be at most 255 characters").with_param("max", 255_i64));
+            refuse.push(Violation::new("email", "max_length", "email must be at most 255 characters").with_param("max", 255_i64));
         }
         // `phone_max_length` (@length(max=40) on Candidate.phone)
         if (create || (update && r::changed(old.as_ref(), row, &["phone"]))) && !r::holds(&r::le(r::length(r::field(row, "phone")), r::Val::Num(40.0_f64))) {
-            shadow.push(Violation::new("phone", "max_length", "phone must be at most 40 characters").with_param("max", 40_i64));
+            refuse.push(Violation::new("phone", "max_length", "phone must be at most 40 characters").with_param("max", 40_i64));
         }
         // `current_employer_max_length` (@length(max=200) on Candidate.current_employer)
         if (create || (update && r::changed(old.as_ref(), row, &["current_employer"]))) && !r::holds(&r::le(r::length(r::field(row, "current_employer")), r::Val::Num(200.0_f64))) {
-            shadow.push(Violation::new("current_employer", "max_length", "current_employer must be at most 200 characters").with_param("max", 200_i64));
+            refuse.push(Violation::new("current_employer", "max_length", "current_employer must be at most 200 characters").with_param("max", 200_i64));
         }
         // `resume_url_max_length` (@length(max=500) on Candidate.resume_url)
         if (create || (update && r::changed(old.as_ref(), row, &["resume_url"]))) && !r::holds(&r::le(r::length(r::field(row, "resume_url")), r::Val::Num(500.0_f64))) {
-            shadow.push(Violation::new("resume_url", "max_length", "resume_url must be at most 500 characters").with_param("max", 500_i64));
+            refuse.push(Violation::new("resume_url", "max_length", "resume_url must be at most 500 characters").with_param("max", 500_i64));
         }
         GuardOutcome { refuse, shadow }
     }

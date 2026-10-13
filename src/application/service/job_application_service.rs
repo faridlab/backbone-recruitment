@@ -56,7 +56,7 @@ impl backbone_core::write_guard::WriteGuard<JobApplication> for JobApplicationRo
         };
         let row = &row;
         let old = ctx.before.and_then(|b| serde_json::to_value(b).ok());
-        let mut shadow = Vec::new();
+        let shadow = Vec::new();
         let mut refuse = Vec::new();
         // `candidate_id_required` (@required on JobApplication.candidate_id)
         if (create || (update && r::changed(old.as_ref(), row, &["candidate_id"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "candidate_id")), r::not(r::is_empty(r::trim(r::field(row, "candidate_id")))))) {
@@ -72,7 +72,7 @@ impl backbone_core::write_guard::WriteGuard<JobApplication> for JobApplicationRo
         }
         // `refuse_reason_max_length` (@length(max=500) on JobApplication.refuse_reason)
         if (create || (update && r::changed(old.as_ref(), row, &["refuse_reason"]))) && !r::holds(&r::le(r::length(r::field(row, "refuse_reason")), r::Val::Num(500.0_f64))) {
-            shadow.push(Violation::new("refuse_reason", "max_length", "refuse_reason must be at most 500 characters").with_param("max", 500_i64));
+            refuse.push(Violation::new("refuse_reason", "max_length", "refuse_reason must be at most 500 characters").with_param("max", 500_i64));
         }
         GuardOutcome { refuse, shadow }
     }

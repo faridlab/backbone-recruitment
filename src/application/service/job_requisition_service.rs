@@ -56,7 +56,7 @@ impl backbone_core::write_guard::WriteGuard<JobRequisition> for JobRequisitionRo
         };
         let row = &row;
         let old = ctx.before.and_then(|b| serde_json::to_value(b).ok());
-        let mut shadow = Vec::new();
+        let shadow = Vec::new();
         let mut refuse = Vec::new();
         // `title_required` (@required on JobRequisition.title)
         if (create || (update && r::changed(old.as_ref(), row, &["title"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "title")), r::not(r::is_empty(r::trim(r::field(row, "title")))))) {
@@ -64,19 +64,19 @@ impl backbone_core::write_guard::WriteGuard<JobRequisition> for JobRequisitionRo
         }
         // `title_max_length` (@length(max=200) on JobRequisition.title)
         if (create || (update && r::changed(old.as_ref(), row, &["title"]))) && !r::holds(&r::le(r::length(r::field(row, "title")), r::Val::Num(200.0_f64))) {
-            shadow.push(Violation::new("title", "max_length", "title must be at most 200 characters").with_param("max", 200_i64));
+            refuse.push(Violation::new("title", "max_length", "title must be at most 200 characters").with_param("max", 200_i64));
         }
         // `headcount_non_negative` (@non_negative on JobRequisition.headcount)
         if (create || (update && r::changed(old.as_ref(), row, &["headcount"]))) && !r::holds(&r::ge(r::field(row, "headcount"), r::Val::Num(0.0_f64))) {
-            shadow.push(Violation::new("headcount", "non_negative", "headcount must not be negative"));
+            refuse.push(Violation::new("headcount", "non_negative", "headcount must not be negative"));
         }
         // `filled_headcount_non_negative` (@non_negative on JobRequisition.filled_headcount)
         if (create || (update && r::changed(old.as_ref(), row, &["filled_headcount"]))) && !r::holds(&r::ge(r::field(row, "filled_headcount"), r::Val::Num(0.0_f64))) {
-            shadow.push(Violation::new("filled_headcount", "non_negative", "filled_headcount must not be negative"));
+            refuse.push(Violation::new("filled_headcount", "non_negative", "filled_headcount must not be negative"));
         }
         // `employment_type_max_length` (@length(max=60) on JobRequisition.employment_type)
         if (create || (update && r::changed(old.as_ref(), row, &["employment_type"]))) && !r::holds(&r::le(r::length(r::field(row, "employment_type")), r::Val::Num(60.0_f64))) {
-            shadow.push(Violation::new("employment_type", "max_length", "employment_type must be at most 60 characters").with_param("max", 60_i64));
+            refuse.push(Violation::new("employment_type", "max_length", "employment_type must be at most 60 characters").with_param("max", 60_i64));
         }
         // `opened_by_required` (@required on JobRequisition.opened_by)
         if (create || (update && r::changed(old.as_ref(), row, &["opened_by"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "opened_by")), r::not(r::is_empty(r::trim(r::field(row, "opened_by")))))) {

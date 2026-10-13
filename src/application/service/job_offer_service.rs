@@ -56,7 +56,7 @@ impl backbone_core::write_guard::WriteGuard<JobOffer> for JobOfferRowRules {
         };
         let row = &row;
         let old = ctx.before.and_then(|b| serde_json::to_value(b).ok());
-        let mut shadow = Vec::new();
+        let shadow = Vec::new();
         let mut refuse = Vec::new();
         // `application_id_required` (@required on JobOffer.application_id)
         if (create || (update && r::changed(old.as_ref(), row, &["application_id"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "application_id")), r::not(r::is_empty(r::trim(r::field(row, "application_id")))))) {
@@ -64,7 +64,7 @@ impl backbone_core::write_guard::WriteGuard<JobOffer> for JobOfferRowRules {
         }
         // `employment_type_max_length` (@length(max=60) on JobOffer.employment_type)
         if (create || (update && r::changed(old.as_ref(), row, &["employment_type"]))) && !r::holds(&r::le(r::length(r::field(row, "employment_type")), r::Val::Num(60.0_f64))) {
-            shadow.push(Violation::new("employment_type", "max_length", "employment_type must be at most 60 characters").with_param("max", 60_i64));
+            refuse.push(Violation::new("employment_type", "max_length", "employment_type must be at most 60 characters").with_param("max", 60_i64));
         }
         GuardOutcome { refuse, shadow }
     }
