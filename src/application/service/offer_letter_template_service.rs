@@ -32,3 +32,53 @@ pub type OfferLetterTemplateService = GenericCrudService<
     OfferLetterTemplateRepository,
 >;
 
+/// The rules the schema declares for OfferLetterTemplate, checked against the row a create or update
+/// would store. The generated build attaches it to [`OfferLetterTemplateService`]. A refusing rule's
+/// break answers 422; a rule in shadow is logged under `backbone::write_guard` and the
+/// write goes ahead.
+pub struct OfferLetterTemplateRowRules;
+
+#[async_trait::async_trait]
+impl backbone_core::write_guard::WriteGuard<OfferLetterTemplate> for OfferLetterTemplateRowRules {
+    async fn check(
+        &self,
+        ctx: &backbone_core::write_guard::WriteCtx<'_, OfferLetterTemplate>,
+    ) -> backbone_core::write_guard::GuardOutcome {
+        use backbone_core::row_rule as r;
+        use backbone_core::violation::Violation;
+        use backbone_core::write_guard::{GuardOutcome, WriteKind};
+        let (create, update) = (ctx.kind == WriteKind::Create, ctx.kind == WriteKind::Update);
+        let Some(after) = ctx.after.filter(|_| create || update) else {
+            return GuardOutcome::allow();
+        };
+        let Ok(row) = serde_json::to_value(after) else {
+            return GuardOutcome::allow();
+        };
+        let row = &row;
+        let old = ctx.before.and_then(|b| serde_json::to_value(b).ok());
+        let mut shadow = Vec::new();
+        let mut refuse = Vec::new();
+        // `name_required` (@required on OfferLetterTemplate.name)
+        if (create || (update && r::changed(old.as_ref(), row, &["name"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "name")), r::not(r::is_empty(r::trim(r::field(row, "name")))))) {
+            refuse.push(Violation::new("name", "required", "name is required"));
+        }
+        // `name_max_length` (@length(max=120) on OfferLetterTemplate.name)
+        if (create || (update && r::changed(old.as_ref(), row, &["name"]))) && !r::holds(&r::le(r::length(r::field(row, "name")), r::Val::Num(120.0_f64))) {
+            shadow.push(Violation::new("name", "max_length", "name must be at most 120 characters").with_param("max", 120_i64));
+        }
+        // `subject_required` (@required on OfferLetterTemplate.subject)
+        if (create || (update && r::changed(old.as_ref(), row, &["subject"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "subject")), r::not(r::is_empty(r::trim(r::field(row, "subject")))))) {
+            refuse.push(Violation::new("subject", "required", "subject is required"));
+        }
+        // `subject_max_length` (@length(max=300) on OfferLetterTemplate.subject)
+        if (create || (update && r::changed(old.as_ref(), row, &["subject"]))) && !r::holds(&r::le(r::length(r::field(row, "subject")), r::Val::Num(300.0_f64))) {
+            shadow.push(Violation::new("subject", "max_length", "subject must be at most 300 characters").with_param("max", 300_i64));
+        }
+        // `body_required` (@required on OfferLetterTemplate.body)
+        if (create || (update && r::changed(old.as_ref(), row, &["body"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "body")), r::not(r::is_empty(r::trim(r::field(row, "body")))))) {
+            refuse.push(Violation::new("body", "required", "body is required"));
+        }
+        GuardOutcome { refuse, shadow }
+    }
+}
+

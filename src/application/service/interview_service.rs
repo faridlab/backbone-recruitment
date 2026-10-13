@@ -32,3 +32,53 @@ pub type InterviewService = GenericCrudService<
     InterviewRepository,
 >;
 
+/// The rules the schema declares for Interview, checked against the row a create or update
+/// would store. The generated build attaches it to [`InterviewService`]. A refusing rule's
+/// break answers 422; a rule in shadow is logged under `backbone::write_guard` and the
+/// write goes ahead.
+pub struct InterviewRowRules;
+
+#[async_trait::async_trait]
+impl backbone_core::write_guard::WriteGuard<Interview> for InterviewRowRules {
+    async fn check(
+        &self,
+        ctx: &backbone_core::write_guard::WriteCtx<'_, Interview>,
+    ) -> backbone_core::write_guard::GuardOutcome {
+        use backbone_core::row_rule as r;
+        use backbone_core::violation::Violation;
+        use backbone_core::write_guard::{GuardOutcome, WriteKind};
+        let (create, update) = (ctx.kind == WriteKind::Create, ctx.kind == WriteKind::Update);
+        let Some(after) = ctx.after.filter(|_| create || update) else {
+            return GuardOutcome::allow();
+        };
+        let Ok(row) = serde_json::to_value(after) else {
+            return GuardOutcome::allow();
+        };
+        let row = &row;
+        let old = ctx.before.and_then(|b| serde_json::to_value(b).ok());
+        let mut shadow = Vec::new();
+        let mut refuse = Vec::new();
+        // `application_id_required` (@required on Interview.application_id)
+        if (create || (update && r::changed(old.as_ref(), row, &["application_id"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "application_id")), r::not(r::is_empty(r::trim(r::field(row, "application_id")))))) {
+            refuse.push(Violation::new("application_id", "required", "application_id is required"));
+        }
+        // `interviewer_id_required` (@required on Interview.interviewer_id)
+        if (create || (update && r::changed(old.as_ref(), row, &["interviewer_id"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "interviewer_id")), r::not(r::is_empty(r::trim(r::field(row, "interviewer_id")))))) {
+            refuse.push(Violation::new("interviewer_id", "required", "interviewer_id is required"));
+        }
+        // `round_non_negative` (@non_negative on Interview.round)
+        if (create || (update && r::changed(old.as_ref(), row, &["round"]))) && !r::holds(&r::ge(r::field(row, "round"), r::Val::Num(0.0_f64))) {
+            shadow.push(Violation::new("round", "non_negative", "round must not be negative"));
+        }
+        // `interview_format_max_length` (@length(max=40) on Interview.interview_format)
+        if (create || (update && r::changed(old.as_ref(), row, &["interview_format"]))) && !r::holds(&r::le(r::length(r::field(row, "interview_format")), r::Val::Num(40.0_f64))) {
+            shadow.push(Violation::new("interview_format", "max_length", "interview_format must be at most 40 characters").with_param("max", 40_i64));
+        }
+        // `rating_non_negative` (@non_negative on Interview.rating)
+        if (create || (update && r::changed(old.as_ref(), row, &["rating"]))) && !r::holds(&r::ge(r::field(row, "rating"), r::Val::Num(0.0_f64))) {
+            shadow.push(Violation::new("rating", "non_negative", "rating must not be negative"));
+        }
+        GuardOutcome { refuse, shadow }
+    }
+}
+

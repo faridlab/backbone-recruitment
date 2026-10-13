@@ -25,6 +25,14 @@ pub use job_requisition_service::JobRequisitionService;
 pub use offer_letter_template_service::OfferLetterTemplateService;
 pub use recruitment_stage_service::RecruitmentStageService;
 pub use requisition_skill_service::RequisitionSkillService;
+pub use candidate_service::CandidateRowRules;
+pub use interview_service::InterviewRowRules;
+pub use job_application_service::JobApplicationRowRules;
+pub use job_offer_service::JobOfferRowRules;
+pub use job_requisition_service::JobRequisitionRowRules;
+pub use offer_letter_template_service::OfferLetterTemplateRowRules;
+pub use recruitment_stage_service::RecruitmentStageRowRules;
+pub use requisition_skill_service::RequisitionSkillRowRules;
 
 // This directory's extension (hand-written; ADR-0031).
 include!("mod.ext.rs");

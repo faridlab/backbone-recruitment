@@ -244,35 +244,35 @@ impl RecruitmentModuleBuilder {
 
         // Candidate service
         let candidate_repository = Arc::new(CandidateRepository::new(db_pool.clone()));
-        let candidate_service = Arc::new(CandidateService::with_repository(candidate_repository.clone()));
+        let candidate_service = Arc::new(CandidateService::with_repository(candidate_repository.clone()).with_guard(Arc::new(crate::application::service::CandidateRowRules)));
 
         // Interview service
         let interview_repository = Arc::new(InterviewRepository::new(db_pool.clone()));
-        let interview_service = Arc::new(InterviewService::with_repository(interview_repository.clone()));
+        let interview_service = Arc::new(InterviewService::with_repository(interview_repository.clone()).with_guard(Arc::new(crate::application::service::InterviewRowRules)));
 
         // JobApplication service
         let job_application_repository = Arc::new(JobApplicationRepository::new(db_pool.clone()));
-        let job_application_service = Arc::new(JobApplicationService::with_repository(job_application_repository.clone()));
+        let job_application_service = Arc::new(JobApplicationService::with_repository(job_application_repository.clone()).with_guard(Arc::new(crate::application::service::JobApplicationRowRules)));
 
         // JobOffer service
         let job_offer_repository = Arc::new(JobOfferRepository::new(db_pool.clone()));
-        let job_offer_service = Arc::new(JobOfferService::with_repository(job_offer_repository.clone()));
+        let job_offer_service = Arc::new(JobOfferService::with_repository(job_offer_repository.clone()).with_guard(Arc::new(crate::application::service::JobOfferRowRules)));
 
         // JobRequisition service
         let job_requisition_repository = Arc::new(JobRequisitionRepository::new(db_pool.clone()));
-        let job_requisition_service = Arc::new(JobRequisitionService::with_repository(job_requisition_repository.clone()));
+        let job_requisition_service = Arc::new(JobRequisitionService::with_repository(job_requisition_repository.clone()).with_guard(Arc::new(crate::application::service::JobRequisitionRowRules)));
 
         // OfferLetterTemplate service
         let offer_letter_template_repository = Arc::new(OfferLetterTemplateRepository::new(db_pool.clone()));
-        let offer_letter_template_service = Arc::new(OfferLetterTemplateService::with_repository(offer_letter_template_repository.clone()));
+        let offer_letter_template_service = Arc::new(OfferLetterTemplateService::with_repository(offer_letter_template_repository.clone()).with_guard(Arc::new(crate::application::service::OfferLetterTemplateRowRules)));
 
         // RecruitmentStage service
         let recruitment_stage_repository = Arc::new(RecruitmentStageRepository::new(db_pool.clone()));
-        let recruitment_stage_service = Arc::new(RecruitmentStageService::with_repository(recruitment_stage_repository.clone()));
+        let recruitment_stage_service = Arc::new(RecruitmentStageService::with_repository(recruitment_stage_repository.clone()).with_guard(Arc::new(crate::application::service::RecruitmentStageRowRules)));
 
         // RequisitionSkill service
         let requisition_skill_repository = Arc::new(RequisitionSkillRepository::new(db_pool.clone()));
-        let requisition_skill_service = Arc::new(RequisitionSkillService::with_repository(requisition_skill_repository.clone()));
+        let requisition_skill_service = Arc::new(RequisitionSkillService::with_repository(requisition_skill_repository.clone()).with_guard(Arc::new(crate::application::service::RequisitionSkillRowRules)));
 
 
         // The extension builds its own state from what the generated build made.

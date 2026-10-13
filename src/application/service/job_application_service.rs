@@ -32,3 +32,49 @@ pub type JobApplicationService = GenericCrudService<
     JobApplicationRepository,
 >;
 
+/// The rules the schema declares for JobApplication, checked against the row a create or update
+/// would store. The generated build attaches it to [`JobApplicationService`]. A refusing rule's
+/// break answers 422; a rule in shadow is logged under `backbone::write_guard` and the
+/// write goes ahead.
+pub struct JobApplicationRowRules;
+
+#[async_trait::async_trait]
+impl backbone_core::write_guard::WriteGuard<JobApplication> for JobApplicationRowRules {
+    async fn check(
+        &self,
+        ctx: &backbone_core::write_guard::WriteCtx<'_, JobApplication>,
+    ) -> backbone_core::write_guard::GuardOutcome {
+        use backbone_core::row_rule as r;
+        use backbone_core::violation::Violation;
+        use backbone_core::write_guard::{GuardOutcome, WriteKind};
+        let (create, update) = (ctx.kind == WriteKind::Create, ctx.kind == WriteKind::Update);
+        let Some(after) = ctx.after.filter(|_| create || update) else {
+            return GuardOutcome::allow();
+        };
+        let Ok(row) = serde_json::to_value(after) else {
+            return GuardOutcome::allow();
+        };
+        let row = &row;
+        let old = ctx.before.and_then(|b| serde_json::to_value(b).ok());
+        let mut shadow = Vec::new();
+        let mut refuse = Vec::new();
+        // `candidate_id_required` (@required on JobApplication.candidate_id)
+        if (create || (update && r::changed(old.as_ref(), row, &["candidate_id"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "candidate_id")), r::not(r::is_empty(r::trim(r::field(row, "candidate_id")))))) {
+            refuse.push(Violation::new("candidate_id", "required", "candidate_id is required"));
+        }
+        // `requisition_id_required` (@required on JobApplication.requisition_id)
+        if (create || (update && r::changed(old.as_ref(), row, &["requisition_id"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "requisition_id")), r::not(r::is_empty(r::trim(r::field(row, "requisition_id")))))) {
+            refuse.push(Violation::new("requisition_id", "required", "requisition_id is required"));
+        }
+        // `stage_id_required` (@required on JobApplication.stage_id)
+        if (create || (update && r::changed(old.as_ref(), row, &["stage_id"]))) && !r::holds(&r::and(r::is_not_null(r::field(row, "stage_id")), r::not(r::is_empty(r::trim(r::field(row, "stage_id")))))) {
+            refuse.push(Violation::new("stage_id", "required", "stage_id is required"));
+        }
+        // `refuse_reason_max_length` (@length(max=500) on JobApplication.refuse_reason)
+        if (create || (update && r::changed(old.as_ref(), row, &["refuse_reason"]))) && !r::holds(&r::le(r::length(r::field(row, "refuse_reason")), r::Val::Num(500.0_f64))) {
+            shadow.push(Violation::new("refuse_reason", "max_length", "refuse_reason must be at most 500 characters").with_param("max", 500_i64));
+        }
+        GuardOutcome { refuse, shadow }
+    }
+}
+
