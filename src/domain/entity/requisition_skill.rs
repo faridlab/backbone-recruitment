@@ -203,6 +203,9 @@ impl backbone_orm::EntityRepoMeta for RequisitionSkill {
     fn search_fields() -> &'static [&'static str] {
         &[]
     }
+    fn relations() -> &'static [(&'static str, &'static str, &'static str)] {
+        &[("requisition", "job_requisitions", "requisitionId")]
+    }
 }
 
 /// Builder for RequisitionSkill entity

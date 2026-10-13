@@ -265,6 +265,9 @@ impl backbone_orm::EntityRepoMeta for Interview {
     fn search_fields() -> &'static [&'static str] {
         &[]
     }
+    fn relations() -> &'static [(&'static str, &'static str, &'static str)] {
+        &[("application", "job_applications", "applicationId")]
+    }
 }
 
 /// Builder for Interview entity

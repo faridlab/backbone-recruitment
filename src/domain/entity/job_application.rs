@@ -270,6 +270,9 @@ impl backbone_orm::EntityRepoMeta for JobApplication {
     fn search_fields() -> &'static [&'static str] {
         &[]
     }
+    fn relations() -> &'static [(&'static str, &'static str, &'static str)] {
+        &[("candidate", "candidates", "candidateId"), ("requisition", "job_requisitions", "requisitionId")]
+    }
 }
 
 /// Builder for JobApplication entity
