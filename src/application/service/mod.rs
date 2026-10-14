@@ -34,5 +34,69 @@ pub use offer_letter_template_service::OfferLetterTemplateRowRules;
 pub use recruitment_stage_service::RecruitmentStageRowRules;
 pub use requisition_skill_service::RequisitionSkillRowRules;
 
+/// A `CandidateService` over `repository` with its write guard attached: the way to build it, so its writes are
+/// served only with the rules the schema declares.
+pub fn build_candidate_service(
+    repository: std::sync::Arc<crate::infrastructure::persistence::CandidateRepository>,
+) -> CandidateService {
+    CandidateService::with_repository(repository).with_guard(std::sync::Arc::new(CandidateRowRules))
+}
+
+/// A `InterviewService` over `repository` with its write guard attached: the way to build it, so its writes are
+/// served only with the rules the schema declares.
+pub fn build_interview_service(
+    repository: std::sync::Arc<crate::infrastructure::persistence::InterviewRepository>,
+) -> InterviewService {
+    InterviewService::with_repository(repository).with_guard(std::sync::Arc::new(InterviewRowRules))
+}
+
+/// A `JobApplicationService` over `repository` with its write guard attached: the way to build it, so its writes are
+/// served only with the rules the schema declares.
+pub fn build_job_application_service(
+    repository: std::sync::Arc<crate::infrastructure::persistence::JobApplicationRepository>,
+) -> JobApplicationService {
+    JobApplicationService::with_repository(repository).with_guard(std::sync::Arc::new(JobApplicationRowRules))
+}
+
+/// A `JobOfferService` over `repository` with its write guard attached: the way to build it, so its writes are
+/// served only with the rules the schema declares.
+pub fn build_job_offer_service(
+    repository: std::sync::Arc<crate::infrastructure::persistence::JobOfferRepository>,
+) -> JobOfferService {
+    JobOfferService::with_repository(repository).with_guard(std::sync::Arc::new(JobOfferRowRules))
+}
+
+/// A `JobRequisitionService` over `repository` with its write guard attached: the way to build it, so its writes are
+/// served only with the rules the schema declares.
+pub fn build_job_requisition_service(
+    repository: std::sync::Arc<crate::infrastructure::persistence::JobRequisitionRepository>,
+) -> JobRequisitionService {
+    JobRequisitionService::with_repository(repository).with_guard(std::sync::Arc::new(JobRequisitionRowRules))
+}
+
+/// A `OfferLetterTemplateService` over `repository` with its write guard attached: the way to build it, so its writes are
+/// served only with the rules the schema declares.
+pub fn build_offer_letter_template_service(
+    repository: std::sync::Arc<crate::infrastructure::persistence::OfferLetterTemplateRepository>,
+) -> OfferLetterTemplateService {
+    OfferLetterTemplateService::with_repository(repository).with_guard(std::sync::Arc::new(OfferLetterTemplateRowRules))
+}
+
+/// A `RecruitmentStageService` over `repository` with its write guard attached: the way to build it, so its writes are
+/// served only with the rules the schema declares.
+pub fn build_recruitment_stage_service(
+    repository: std::sync::Arc<crate::infrastructure::persistence::RecruitmentStageRepository>,
+) -> RecruitmentStageService {
+    RecruitmentStageService::with_repository(repository).with_guard(std::sync::Arc::new(RecruitmentStageRowRules))
+}
+
+/// A `RequisitionSkillService` over `repository` with its write guard attached: the way to build it, so its writes are
+/// served only with the rules the schema declares.
+pub fn build_requisition_skill_service(
+    repository: std::sync::Arc<crate::infrastructure::persistence::RequisitionSkillRepository>,
+) -> RequisitionSkillService {
+    RequisitionSkillService::with_repository(repository).with_guard(std::sync::Arc::new(RequisitionSkillRowRules))
+}
+
 // This directory's extension (hand-written; ADR-0031).
 include!("mod.ext.rs");
