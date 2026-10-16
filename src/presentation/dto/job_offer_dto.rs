@@ -41,7 +41,6 @@ pub struct CreateJobOfferDto {
     pub employment_type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "letter_template_id")]
     pub letter_template_id: Option<Uuid>,
-    pub status: OfferStatus,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "offered_at")]
     pub offered_at: Option<DateTime<Utc>>,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "accepted_at")]
@@ -253,7 +252,7 @@ impl From<CreateJobOfferDto> for JobOffer {
             proposed_salary: dto.proposed_salary,
             employment_type: dto.employment_type,
             letter_template_id: dto.letter_template_id,
-            status: dto.status,
+            status: OfferStatus::Draft,
             offered_at: dto.offered_at,
             accepted_at: dto.accepted_at,
             start_date: dto.start_date,

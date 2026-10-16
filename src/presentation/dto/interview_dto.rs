@@ -46,7 +46,6 @@ pub struct CreateInterviewDto {
     pub rating: Option<i32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub feedback: Option<String>,
-    pub status: InterviewStatus,
 }
 
 // =============================================================================
@@ -254,7 +253,7 @@ impl From<CreateInterviewDto> for Interview {
             interview_format: dto.interview_format,
             rating: dto.rating,
             feedback: dto.feedback,
-            status: dto.status,
+            status: InterviewStatus::Scheduled,
             metadata: AuditMetadata::default(),
         }
     }

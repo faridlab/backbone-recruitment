@@ -43,7 +43,6 @@ pub struct CreateJobRequisitionDto {
     pub filled_headcount: i32,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "employment_type")]
     pub employment_type: Option<String>,
-    pub status: RequisitionStatus,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "approval_request_id")]
     pub approval_request_id: Option<Uuid>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
@@ -278,7 +277,7 @@ impl From<CreateJobRequisitionDto> for JobRequisition {
             headcount: dto.headcount,
             filled_headcount: dto.filled_headcount,
             employment_type: dto.employment_type,
-            status: dto.status,
+            status: RequisitionStatus::Draft,
             approval_request_id: dto.approval_request_id,
             opened_by: dto.opened_by,
             budget: dto.budget,
