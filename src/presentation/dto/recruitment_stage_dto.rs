@@ -31,14 +31,20 @@ pub struct CreateRecruitmentStageDto {
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     pub name: String,
     #[cfg_attr(feature = "openapi", schema(example = 42))]
+    #[serde(default = "default_create_recruitment_stage_sequence")]
     pub sequence: i32,
     #[cfg_attr(feature = "openapi", schema(example = true))]
-    #[serde(alias = "is_hired")]
+    #[serde(default, alias = "is_hired")]
     pub is_hired: bool,
     #[cfg_attr(feature = "openapi", schema(example = true))]
+    #[serde(default)]
     pub folded: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+}
+
+fn default_create_recruitment_stage_sequence() -> i32 {
+    10
 }
 
 // =============================================================================
@@ -90,8 +96,8 @@ pub struct PatchRecruitmentStageDto {
     #[cfg_attr(feature = "openapi", schema(example = true))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub folded: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option")]
+    pub description: Option<Option<String>>,
 }
 
 impl PatchRecruitmentStageDto {
@@ -262,12 +268,4 @@ impl backbone_core::ApplyUpdateDto<UpdateRecruitmentStageDto> for RecruitmentSta
         Ok(self)
     }
 }
-
-// =============================================================================
-// Custom DTOs
-// =============================================================================
-
-// Add custom DTOs specific to RecruitmentStage here.
-// This section will be preserved during regeneration.
-// >>> END CUSTOM DTOs
 

@@ -39,7 +39,7 @@ pub struct CreateJobRequisitionDto {
     #[cfg_attr(feature = "openapi", schema(example = 42))]
     pub headcount: i32,
     #[cfg_attr(feature = "openapi", schema(example = 42))]
-    #[serde(alias = "filled_headcount")]
+    #[serde(default, alias = "filled_headcount")]
     pub filled_headcount: i32,
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "employment_type")]
     pub employment_type: Option<String>,
@@ -103,10 +103,10 @@ pub struct UpdateJobRequisitionDto {
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct PatchJobRequisitionDto {
-    #[serde(skip_serializing_if = "Option::is_none", alias = "department_id")]
-    pub department_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "position_id")]
-    pub position_id: Option<Uuid>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "department_id")]
+    pub department_id: Option<Option<Uuid>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "position_id")]
+    pub position_id: Option<Option<Uuid>>,
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
@@ -116,19 +116,19 @@ pub struct PatchJobRequisitionDto {
     #[cfg_attr(feature = "openapi", schema(example = 42))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "filled_headcount")]
     pub filled_headcount: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "employment_type")]
-    pub employment_type: Option<String>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "employment_type")]
+    pub employment_type: Option<Option<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<RequisitionStatus>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "approval_request_id")]
-    pub approval_request_id: Option<Uuid>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "approval_request_id")]
+    pub approval_request_id: Option<Option<Uuid>>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "opened_by")]
     pub opened_by: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub budget: Option<Decimal>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub deadline: Option<NaiveDate>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option")]
+    pub budget: Option<Option<Decimal>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option")]
+    pub deadline: Option<Option<NaiveDate>>,
 }
 
 impl PatchJobRequisitionDto {
@@ -329,12 +329,4 @@ impl backbone_core::ApplyUpdateDto<UpdateJobRequisitionDto> for JobRequisition {
         Ok(self)
     }
 }
-
-// =============================================================================
-// Custom DTOs
-// =============================================================================
-
-// Add custom DTOs specific to JobRequisition here.
-// This section will be preserved during regeneration.
-// >>> END CUSTOM DTOs
 

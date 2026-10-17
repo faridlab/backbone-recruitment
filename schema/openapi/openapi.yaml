@@ -417,30 +417,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-    post:
-      tags:
-        - Interviews
-      summary: Create Interview
-      description: Create a new Interview
-      operationId: createInterview
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateInterviewRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Interview'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
   /api/v1/recruitment/interviews/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
@@ -460,181 +436,6 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-    put:
-      tags:
-        - Interviews
-      summary: Update Interview (full)
-      operationId: updateInterview
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateInterviewRequest'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Interview'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-    patch:
-      tags:
-        - Interviews
-      summary: Update Interview (partial)
-      operationId: patchInterview
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchInterviewRequest'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Interview'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-    delete:
-      tags:
-        - Interviews
-      summary: Delete Interview (soft)
-      operationId: deleteInterview
-      responses:
-        '204':
-          description: Deleted
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/v1/recruitment/interviews/bulk:
-    post:
-      tags:
-        - Interviews
-      summary: Bulk create Interviews
-      operationId: bulkCreateInterviews
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/CreateInterviewRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Interview'
-    put:
-      tags:
-        - Interviews
-      summary: Bulk update Interviews (full, atomic)
-      operationId: bulkUpdateInterviews
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                allOf:
-                  - type: object
-                    required: [id]
-                    properties:
-                      id:
-                        type: string
-                  - $ref: '#/components/schemas/UpdateInterviewRequest'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewBulkResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-    patch:
-      tags:
-        - Interviews
-      summary: Bulk partial-update Interviews (atomic)
-      operationId: bulkPatchInterviews
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              oneOf:
-                - type: object
-                  required: [ids, patch]
-                  properties:
-                    ids:
-                      type: array
-                      items: { type: string }
-                    patch:
-                      type: object
-                      additionalProperties: true
-                - type: object
-                  required: [items]
-                  properties:
-                    items:
-                      type: array
-                      items:
-                        type: object
-                        required: [id, patch]
-                        properties:
-                          id: { type: string }
-                          patch: { type: object, additionalProperties: true }
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewBulkResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /api/v1/recruitment/interviews/upsert:
-    post:
-      tags:
-        - Interviews
-      summary: Upsert Interview
-      operationId: upsertInterview
-      parameters:
-        - name: key_field
-          in: query
-          schema:
-            type: string
-        - name: key_value
-          in: query
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateInterviewRequest'
-      responses:
-        '200':
-          description: Upserted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Interview'
-
   /api/v1/recruitment/interviews/trash:
     get:
       tags:
@@ -651,115 +452,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InterviewList'
-
-  /api/v1/recruitment/interviews/{id}/restore:
-    parameters:
-      - $ref: '#/components/parameters/IdParam'
-    post:
-      tags:
-        - Interviews
-      summary: Restore deleted Interview
-      operationId: restoreInterview
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Interview'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/v1/recruitment/interviews/empty:
-    delete:
-      tags:
-        - Interviews
-      summary: Empty trash for Interviews
-      operationId: emptyTrashInterviews
-      responses:
-        '200':
-          description: Trash emptied
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  deleted_count:
-                    type: integer
-
-  /api/v1/recruitment/interviews/delete/bulk:
-    post:
-      tags:
-        - Interviews
-      summary: Bulk soft-delete Interviews by ids (atomic)
-      operationId: bulkDeleteInterviews
-      requestBody:
-        $ref: '#/components/requestBodies/BatchIds'
-      responses:
-        '200':
-          description: Soft-deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  soft_deleted: { type: integer }
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /api/v1/recruitment/interviews/restore/bulk:
-    post:
-      tags:
-        - Interviews
-      summary: Bulk restore Interviews by ids (atomic)
-      operationId: bulkRestoreInterviews
-      requestBody:
-        $ref: '#/components/requestBodies/BatchIds'
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InterviewBulkResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /api/v1/recruitment/interviews/restore/all:
-    post:
-      tags:
-        - Interviews
-      summary: Restore all soft-deleted Interviews
-      operationId: restoreAllInterviews
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  restored: { type: integer }
-
-  /api/v1/recruitment/interviews/trash/bulk:
-    delete:
-      tags:
-        - Interviews
-      summary: Bulk permanently-delete Interviews from trash by ids (atomic)
-      operationId: bulkPermanentDeleteInterviews
-      requestBody:
-        $ref: '#/components/requestBodies/BatchIds'
-      responses:
-        '200':
-          description: Permanently deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  permanently_deleted: { type: integer }
-        '400':
-          $ref: '#/components/responses/BadRequest'
 
   /api/v1/recruitment/job_applications:
     get:
@@ -1149,30 +841,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-    post:
-      tags:
-        - JobOffers
-      summary: Create JobOffer
-      description: Create a new JobOffer
-      operationId: createJobOffer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateJobOfferRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobOffer'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
   /api/v1/recruitment/job_offers/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
@@ -1192,181 +860,6 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-    put:
-      tags:
-        - JobOffers
-      summary: Update JobOffer (full)
-      operationId: updateJobOffer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateJobOfferRequest'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobOffer'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-    patch:
-      tags:
-        - JobOffers
-      summary: Update JobOffer (partial)
-      operationId: patchJobOffer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchJobOfferRequest'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobOffer'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-    delete:
-      tags:
-        - JobOffers
-      summary: Delete JobOffer (soft)
-      operationId: deleteJobOffer
-      responses:
-        '204':
-          description: Deleted
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/v1/recruitment/job_offers/bulk:
-    post:
-      tags:
-        - JobOffers
-      summary: Bulk create JobOffers
-      operationId: bulkCreateJobOffers
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/CreateJobOfferRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/JobOffer'
-    put:
-      tags:
-        - JobOffers
-      summary: Bulk update JobOffers (full, atomic)
-      operationId: bulkUpdateJobOffers
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                allOf:
-                  - type: object
-                    required: [id]
-                    properties:
-                      id:
-                        type: string
-                  - $ref: '#/components/schemas/UpdateJobOfferRequest'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobOfferBulkResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-    patch:
-      tags:
-        - JobOffers
-      summary: Bulk partial-update JobOffers (atomic)
-      operationId: bulkPatchJobOffers
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              oneOf:
-                - type: object
-                  required: [ids, patch]
-                  properties:
-                    ids:
-                      type: array
-                      items: { type: string }
-                    patch:
-                      type: object
-                      additionalProperties: true
-                - type: object
-                  required: [items]
-                  properties:
-                    items:
-                      type: array
-                      items:
-                        type: object
-                        required: [id, patch]
-                        properties:
-                          id: { type: string }
-                          patch: { type: object, additionalProperties: true }
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobOfferBulkResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /api/v1/recruitment/job_offers/upsert:
-    post:
-      tags:
-        - JobOffers
-      summary: Upsert JobOffer
-      operationId: upsertJobOffer
-      parameters:
-        - name: key_field
-          in: query
-          schema:
-            type: string
-        - name: key_value
-          in: query
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateJobOfferRequest'
-      responses:
-        '200':
-          description: Upserted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobOffer'
-
   /api/v1/recruitment/job_offers/trash:
     get:
       tags:
@@ -1383,115 +876,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JobOfferList'
-
-  /api/v1/recruitment/job_offers/{id}/restore:
-    parameters:
-      - $ref: '#/components/parameters/IdParam'
-    post:
-      tags:
-        - JobOffers
-      summary: Restore deleted JobOffer
-      operationId: restoreJobOffer
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobOffer'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/v1/recruitment/job_offers/empty:
-    delete:
-      tags:
-        - JobOffers
-      summary: Empty trash for JobOffers
-      operationId: emptyTrashJobOffers
-      responses:
-        '200':
-          description: Trash emptied
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  deleted_count:
-                    type: integer
-
-  /api/v1/recruitment/job_offers/delete/bulk:
-    post:
-      tags:
-        - JobOffers
-      summary: Bulk soft-delete JobOffers by ids (atomic)
-      operationId: bulkDeleteJobOffers
-      requestBody:
-        $ref: '#/components/requestBodies/BatchIds'
-      responses:
-        '200':
-          description: Soft-deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  soft_deleted: { type: integer }
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /api/v1/recruitment/job_offers/restore/bulk:
-    post:
-      tags:
-        - JobOffers
-      summary: Bulk restore JobOffers by ids (atomic)
-      operationId: bulkRestoreJobOffers
-      requestBody:
-        $ref: '#/components/requestBodies/BatchIds'
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobOfferBulkResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /api/v1/recruitment/job_offers/restore/all:
-    post:
-      tags:
-        - JobOffers
-      summary: Restore all soft-deleted JobOffers
-      operationId: restoreAllJobOffers
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  restored: { type: integer }
-
-  /api/v1/recruitment/job_offers/trash/bulk:
-    delete:
-      tags:
-        - JobOffers
-      summary: Bulk permanently-delete JobOffers from trash by ids (atomic)
-      operationId: bulkPermanentDeleteJobOffers
-      requestBody:
-        $ref: '#/components/requestBodies/BatchIds'
-      responses:
-        '200':
-          description: Permanently deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  permanently_deleted: { type: integer }
-        '400':
-          $ref: '#/components/responses/BadRequest'
 
   /api/v1/recruitment/job_requisitions:
     get:
@@ -1515,30 +899,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-    post:
-      tags:
-        - JobRequisitions
-      summary: Create JobRequisition
-      description: Create a new JobRequisition
-      operationId: createJobRequisition
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateJobRequisitionRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobRequisition'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
   /api/v1/recruitment/job_requisitions/{id}:
     parameters:
       - $ref: '#/components/parameters/IdParam'
@@ -1558,181 +918,6 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-    put:
-      tags:
-        - JobRequisitions
-      summary: Update JobRequisition (full)
-      operationId: updateJobRequisition
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateJobRequisitionRequest'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobRequisition'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-    patch:
-      tags:
-        - JobRequisitions
-      summary: Update JobRequisition (partial)
-      operationId: patchJobRequisition
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchJobRequisitionRequest'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobRequisition'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-    delete:
-      tags:
-        - JobRequisitions
-      summary: Delete JobRequisition (soft)
-      operationId: deleteJobRequisition
-      responses:
-        '204':
-          description: Deleted
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/v1/recruitment/job_requisitions/bulk:
-    post:
-      tags:
-        - JobRequisitions
-      summary: Bulk create JobRequisitions
-      operationId: bulkCreateJobRequisitions
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/CreateJobRequisitionRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/JobRequisition'
-    put:
-      tags:
-        - JobRequisitions
-      summary: Bulk update JobRequisitions (full, atomic)
-      operationId: bulkUpdateJobRequisitions
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: array
-              items:
-                allOf:
-                  - type: object
-                    required: [id]
-                    properties:
-                      id:
-                        type: string
-                  - $ref: '#/components/schemas/UpdateJobRequisitionRequest'
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobRequisitionBulkResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-    patch:
-      tags:
-        - JobRequisitions
-      summary: Bulk partial-update JobRequisitions (atomic)
-      operationId: bulkPatchJobRequisitions
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              oneOf:
-                - type: object
-                  required: [ids, patch]
-                  properties:
-                    ids:
-                      type: array
-                      items: { type: string }
-                    patch:
-                      type: object
-                      additionalProperties: true
-                - type: object
-                  required: [items]
-                  properties:
-                    items:
-                      type: array
-                      items:
-                        type: object
-                        required: [id, patch]
-                        properties:
-                          id: { type: string }
-                          patch: { type: object, additionalProperties: true }
-      responses:
-        '200':
-          description: Updated
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobRequisitionBulkResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /api/v1/recruitment/job_requisitions/upsert:
-    post:
-      tags:
-        - JobRequisitions
-      summary: Upsert JobRequisition
-      operationId: upsertJobRequisition
-      parameters:
-        - name: key_field
-          in: query
-          schema:
-            type: string
-        - name: key_value
-          in: query
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateJobRequisitionRequest'
-      responses:
-        '200':
-          description: Upserted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobRequisition'
-
   /api/v1/recruitment/job_requisitions/trash:
     get:
       tags:
@@ -1749,115 +934,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JobRequisitionList'
-
-  /api/v1/recruitment/job_requisitions/{id}/restore:
-    parameters:
-      - $ref: '#/components/parameters/IdParam'
-    post:
-      tags:
-        - JobRequisitions
-      summary: Restore deleted JobRequisition
-      operationId: restoreJobRequisition
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobRequisition'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /api/v1/recruitment/job_requisitions/empty:
-    delete:
-      tags:
-        - JobRequisitions
-      summary: Empty trash for JobRequisitions
-      operationId: emptyTrashJobRequisitions
-      responses:
-        '200':
-          description: Trash emptied
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  deleted_count:
-                    type: integer
-
-  /api/v1/recruitment/job_requisitions/delete/bulk:
-    post:
-      tags:
-        - JobRequisitions
-      summary: Bulk soft-delete JobRequisitions by ids (atomic)
-      operationId: bulkDeleteJobRequisitions
-      requestBody:
-        $ref: '#/components/requestBodies/BatchIds'
-      responses:
-        '200':
-          description: Soft-deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  soft_deleted: { type: integer }
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /api/v1/recruitment/job_requisitions/restore/bulk:
-    post:
-      tags:
-        - JobRequisitions
-      summary: Bulk restore JobRequisitions by ids (atomic)
-      operationId: bulkRestoreJobRequisitions
-      requestBody:
-        $ref: '#/components/requestBodies/BatchIds'
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JobRequisitionBulkResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /api/v1/recruitment/job_requisitions/restore/all:
-    post:
-      tags:
-        - JobRequisitions
-      summary: Restore all soft-deleted JobRequisitions
-      operationId: restoreAllJobRequisitions
-      responses:
-        '200':
-          description: Restored
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  restored: { type: integer }
-
-  /api/v1/recruitment/job_requisitions/trash/bulk:
-    delete:
-      tags:
-        - JobRequisitions
-      summary: Bulk permanently-delete JobRequisitions from trash by ids (atomic)
-      operationId: bulkPermanentDeleteJobRequisitions
-      requestBody:
-        $ref: '#/components/requestBodies/BatchIds'
-      responses:
-        '200':
-          description: Permanently deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  permanently_deleted: { type: integer }
-        '400':
-          $ref: '#/components/responses/BadRequest'
 
   /api/v1/recruitment/offer_letter_templates:
     get:
@@ -3009,7 +2085,6 @@ components:
       type: object
       required:
         - first_name
-        - metadata
       properties:
         first_name:
           type: string
@@ -3031,14 +2106,11 @@ components:
         resume_url:
           nullable: true
           type: string
-        metadata:
-          type: object
 
     UpdateCandidateRequest:
       type: object
       required:
         - first_name
-        - metadata
       properties:
         first_name:
           type: string
@@ -3060,8 +2132,6 @@ components:
         resume_url:
           nullable: true
           type: string
-        metadata:
-          type: object
 
     PatchCandidateRequest:
       type: object
@@ -3086,8 +2156,6 @@ components:
         resume_url:
           nullable: true
           type: string
-        metadata:
-          type: object
 
     CandidateList:
       type: object
@@ -3159,8 +2227,6 @@ components:
         - application_id
         - interviewer_id
         - scheduled_at
-        - status
-        - metadata
       properties:
         application_id:
           type: string
@@ -3185,10 +2251,6 @@ components:
         feedback:
           nullable: true
           type: string
-        status:
-          type: string
-        metadata:
-          type: object
 
     UpdateInterviewRequest:
       type: object
@@ -3197,7 +2259,6 @@ components:
         - interviewer_id
         - scheduled_at
         - status
-        - metadata
       properties:
         application_id:
           type: string
@@ -3224,8 +2285,6 @@ components:
           type: string
         status:
           type: string
-        metadata:
-          type: object
 
     PatchInterviewRequest:
       type: object
@@ -3255,8 +2314,6 @@ components:
           type: string
         status:
           type: string
-        metadata:
-          type: object
 
     InterviewList:
       type: object
@@ -3334,8 +2391,6 @@ components:
         - candidate_id
         - requisition_id
         - stage_id
-        - applied_at
-        - metadata
       properties:
         candidate_id:
           type: string
@@ -3368,8 +2423,6 @@ components:
         applied_at:
           type: string
           format: date-time
-        metadata:
-          type: object
 
     UpdateJobApplicationRequest:
       type: object
@@ -3378,7 +2431,6 @@ components:
         - requisition_id
         - stage_id
         - applied_at
-        - metadata
       properties:
         candidate_id:
           type: string
@@ -3411,8 +2463,6 @@ components:
         applied_at:
           type: string
           format: date-time
-        metadata:
-          type: object
 
     PatchJobApplicationRequest:
       type: object
@@ -3448,8 +2498,6 @@ components:
         applied_at:
           type: string
           format: date-time
-        metadata:
-          type: object
 
     JobApplicationList:
       type: object
@@ -3523,8 +2571,6 @@ components:
       type: object
       required:
         - application_id
-        - status
-        - metadata
       properties:
         approval_request_id:
           nullable: true
@@ -3543,8 +2589,6 @@ components:
           nullable: true
           type: string
           format: uuid
-        status:
-          type: string
         offered_at:
           nullable: true
           type: string
@@ -3557,15 +2601,12 @@ components:
           nullable: true
           type: string
           format: date
-        metadata:
-          type: object
 
     UpdateJobOfferRequest:
       type: object
       required:
         - application_id
         - status
-        - metadata
       properties:
         approval_request_id:
           nullable: true
@@ -3598,8 +2639,6 @@ components:
           nullable: true
           type: string
           format: date
-        metadata:
-          type: object
 
     PatchJobOfferRequest:
       type: object
@@ -3635,8 +2674,6 @@ components:
           nullable: true
           type: string
           format: date
-        metadata:
-          type: object
 
     JobOfferList:
       type: object
@@ -3718,10 +2755,7 @@ components:
       required:
         - title
         - headcount
-        - filled_headcount
-        - status
         - opened_by
-        - metadata
       properties:
         department_id:
           nullable: true
@@ -3742,8 +2776,6 @@ components:
         employment_type:
           nullable: true
           type: string
-        status:
-          type: string
         approval_request_id:
           nullable: true
           type: string
@@ -3758,8 +2790,6 @@ components:
           nullable: true
           type: string
           format: date
-        metadata:
-          type: object
 
     UpdateJobRequisitionRequest:
       type: object
@@ -3769,7 +2799,6 @@ components:
         - filled_headcount
         - status
         - opened_by
-        - metadata
       properties:
         department_id:
           nullable: true
@@ -3806,8 +2835,6 @@ components:
           nullable: true
           type: string
           format: date
-        metadata:
-          type: object
 
     PatchJobRequisitionRequest:
       type: object
@@ -3847,8 +2874,6 @@ components:
           nullable: true
           type: string
           format: date
-        metadata:
-          type: object
 
     JobRequisitionList:
       type: object
@@ -3900,7 +2925,6 @@ components:
         - name
         - subject
         - body
-        - metadata
       properties:
         name:
           type: string
@@ -3908,8 +2932,6 @@ components:
           type: string
         body:
           type: string
-        metadata:
-          type: object
 
     UpdateOfferLetterTemplateRequest:
       type: object
@@ -3917,7 +2939,6 @@ components:
         - name
         - subject
         - body
-        - metadata
       properties:
         name:
           type: string
@@ -3925,8 +2946,6 @@ components:
           type: string
         body:
           type: string
-        metadata:
-          type: object
 
     PatchOfferLetterTemplateRequest:
       type: object
@@ -3937,8 +2956,6 @@ components:
           type: string
         body:
           type: string
-        metadata:
-          type: object
 
     OfferLetterTemplateList:
       type: object
@@ -3995,10 +3012,6 @@ components:
       type: object
       required:
         - name
-        - sequence
-        - is_hired
-        - folded
-        - metadata
       properties:
         name:
           type: string
@@ -4012,8 +3025,6 @@ components:
         description:
           nullable: true
           type: string
-        metadata:
-          type: object
 
     UpdateRecruitmentStageRequest:
       type: object
@@ -4022,7 +3033,6 @@ components:
         - sequence
         - is_hired
         - folded
-        - metadata
       properties:
         name:
           type: string
@@ -4036,8 +3046,6 @@ components:
         description:
           nullable: true
           type: string
-        metadata:
-          type: object
 
     PatchRecruitmentStageRequest:
       type: object
@@ -4054,8 +3062,6 @@ components:
         description:
           nullable: true
           type: string
-        metadata:
-          type: object
 
     RecruitmentStageList:
       type: object
@@ -4109,7 +3115,6 @@ components:
         - requisition_id
         - skill_id
         - required_proficiency
-        - metadata
       properties:
         requisition_id:
           type: string
@@ -4119,8 +3124,6 @@ components:
           format: uuid
         required_proficiency:
           type: string
-        metadata:
-          type: object
 
     UpdateRequisitionSkillRequest:
       type: object
@@ -4128,7 +3131,6 @@ components:
         - requisition_id
         - skill_id
         - required_proficiency
-        - metadata
       properties:
         requisition_id:
           type: string
@@ -4138,8 +3140,6 @@ components:
           format: uuid
         required_proficiency:
           type: string
-        metadata:
-          type: object
 
     PatchRequisitionSkillRequest:
       type: object
@@ -4152,8 +3152,6 @@ components:
           format: uuid
         required_proficiency:
           type: string
-        metadata:
-          type: object
 
     RequisitionSkillList:
       type: object

@@ -101,14 +101,14 @@ pub struct PatchInterviewDto {
     #[cfg_attr(feature = "openapi", schema(example = "2024-01-01T00:00:00Z"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "scheduled_at")]
     pub scheduled_at: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub round: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "interview_format")]
-    pub interview_format: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub rating: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub feedback: Option<String>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option")]
+    pub round: Option<Option<i32>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "interview_format")]
+    pub interview_format: Option<Option<String>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option")]
+    pub rating: Option<Option<i32>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option")]
+    pub feedback: Option<Option<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<InterviewStatus>,
 }
@@ -295,12 +295,4 @@ impl backbone_core::ApplyUpdateDto<UpdateInterviewDto> for Interview {
         Ok(self)
     }
 }
-
-// =============================================================================
-// Custom DTOs
-// =============================================================================
-
-// Add custom DTOs specific to Interview here.
-// This section will be preserved during regeneration.
-// >>> END CUSTOM DTOs
 

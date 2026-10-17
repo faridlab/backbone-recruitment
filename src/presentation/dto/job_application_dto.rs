@@ -48,8 +48,12 @@ pub struct CreateJobApplicationDto {
     #[serde(default, skip_serializing_if = "Option::is_none", alias = "refused_at")]
     pub refused_at: Option<DateTime<Utc>>,
     #[cfg_attr(feature = "openapi", schema(example = "2024-01-01T00:00:00Z"))]
-    #[serde(alias = "applied_at")]
+    #[serde(default = "default_create_job_application_applied_at", alias = "applied_at")]
     pub applied_at: DateTime<Utc>,
+}
+
+fn default_create_job_application_applied_at() -> DateTime<Utc> {
+    Utc::now()
 }
 
 // =============================================================================
@@ -109,16 +113,16 @@ pub struct PatchJobApplicationDto {
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "stage_id")]
     pub stage_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "last_stage_id")]
-    pub last_stage_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "stage_updated_at")]
-    pub stage_updated_at: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "date_closed")]
-    pub date_closed: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "refuse_reason")]
-    pub refuse_reason: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "refused_at")]
-    pub refused_at: Option<DateTime<Utc>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "last_stage_id")]
+    pub last_stage_id: Option<Option<Uuid>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "stage_updated_at")]
+    pub stage_updated_at: Option<Option<DateTime<Utc>>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "date_closed")]
+    pub date_closed: Option<Option<DateTime<Utc>>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "refuse_reason")]
+    pub refuse_reason: Option<Option<String>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "refused_at")]
+    pub refused_at: Option<Option<DateTime<Utc>>>,
     #[cfg_attr(feature = "openapi", schema(example = "2024-01-01T00:00:00Z"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "applied_at")]
     pub applied_at: Option<DateTime<Utc>>,
@@ -312,12 +316,4 @@ impl backbone_core::ApplyUpdateDto<UpdateJobApplicationDto> for JobApplication {
         Ok(self)
     }
 }
-
-// =============================================================================
-// Custom DTOs
-// =============================================================================
-
-// Add custom DTOs specific to JobApplication here.
-// This section will be preserved during regeneration.
-// >>> END CUSTOM DTOs
 

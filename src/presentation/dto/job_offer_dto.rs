@@ -93,25 +93,25 @@ pub struct UpdateJobOfferDto {
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub struct PatchJobOfferDto {
-    #[serde(skip_serializing_if = "Option::is_none", alias = "approval_request_id")]
-    pub approval_request_id: Option<Uuid>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "approval_request_id")]
+    pub approval_request_id: Option<Option<Uuid>>,
     #[cfg_attr(feature = "openapi", schema(example = "550e8400-e29b-41d4-a716-446655440000"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "application_id")]
     pub application_id: Option<Uuid>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "proposed_salary")]
-    pub proposed_salary: Option<Decimal>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "employment_type")]
-    pub employment_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "letter_template_id")]
-    pub letter_template_id: Option<Uuid>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "proposed_salary")]
+    pub proposed_salary: Option<Option<Decimal>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "employment_type")]
+    pub employment_type: Option<Option<String>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "letter_template_id")]
+    pub letter_template_id: Option<Option<Uuid>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<OfferStatus>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "offered_at")]
-    pub offered_at: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "accepted_at")]
-    pub accepted_at: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "start_date")]
-    pub start_date: Option<NaiveDate>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "offered_at")]
+    pub offered_at: Option<Option<DateTime<Utc>>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "accepted_at")]
+    pub accepted_at: Option<Option<DateTime<Utc>>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "start_date")]
+    pub start_date: Option<Option<NaiveDate>>,
 }
 
 impl PatchJobOfferDto {
@@ -299,12 +299,4 @@ impl backbone_core::ApplyUpdateDto<UpdateJobOfferDto> for JobOffer {
         Ok(self)
     }
 }
-
-// =============================================================================
-// Custom DTOs
-// =============================================================================
-
-// Add custom DTOs specific to JobOffer here.
-// This section will be preserved during regeneration.
-// >>> END CUSTOM DTOs
 

@@ -90,18 +90,18 @@ pub struct PatchCandidateDto {
     #[cfg_attr(feature = "openapi", schema(example = "example"))]
     #[serde(skip_serializing_if = "Option::is_none", alias = "first_name")]
     pub first_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "last_name")]
-    pub last_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub phone: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub source: Option<CandidateSource>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "current_employer")]
-    pub current_employer: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none", alias = "resume_url")]
-    pub resume_url: Option<String>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "last_name")]
+    pub last_name: Option<Option<String>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option")]
+    pub email: Option<Option<String>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option")]
+    pub phone: Option<Option<String>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option")]
+    pub source: Option<Option<CandidateSource>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "current_employer")]
+    pub current_employer: Option<Option<String>>,
+    #[serde(default, deserialize_with = "crate::presentation::dto::double_option", alias = "resume_url")]
+    pub resume_url: Option<Option<String>>,
 }
 
 impl PatchCandidateDto {
@@ -279,12 +279,4 @@ impl backbone_core::ApplyUpdateDto<UpdateCandidateDto> for Candidate {
         Ok(self)
     }
 }
-
-// =============================================================================
-// Custom DTOs
-// =============================================================================
-
-// Add custom DTOs specific to Candidate here.
-// This section will be preserved during regeneration.
-// >>> END CUSTOM DTOs
 

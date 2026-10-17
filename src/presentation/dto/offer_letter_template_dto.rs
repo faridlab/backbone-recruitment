@@ -237,11 +237,3 @@ impl backbone_core::ApplyUpdateDto<UpdateOfferLetterTemplateDto> for OfferLetter
     }
 }
 
-// =============================================================================
-// Custom DTOs
-// =============================================================================
-
-// Add custom DTOs specific to OfferLetterTemplate here.
-// This section will be preserved during regeneration.
-// >>> END CUSTOM DTOs
-
