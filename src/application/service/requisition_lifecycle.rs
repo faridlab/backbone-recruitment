@@ -10,7 +10,21 @@
 //! resource type) when the port is wired and returns the request id; the
 //! flip to open happens on `confirm_open` (the caller re-invokes, or the
 //! compose-side settlement dispatcher drives it from the verdict). An
-//! unwired port opens directly — the pre-engine behaviour, unchanged.
+//! unwired port opens directly — the pre-engine behaviour, unchanged. A
+//! wired port never lets an unfiled draft open: the open verb files it first,
+//! and an engine with no policy for requisitions approves the filing outright.
+//!
+//! After opening, the status moves only through the verbs here:
+//!
+//! ```text
+//! open    --hold-->   on_hold
+//! on_hold --resume--> open
+//! open | on_hold          --close-->  closed
+//! draft | open | on_hold  --cancel--> cancelled
+//! ```
+//!
+//! `closed` and `cancelled` are final. Each verb is idempotent: asking for the
+//! state the requisition is already in changes nothing.
 
 use std::sync::RwLock;
 use uuid::Uuid;
@@ -30,6 +44,14 @@ pub enum RequisitionError {
     NotDraft(Uuid, String),
     #[error("the requisition's approval has not been granted by the engine")]
     ApprovalNotGranted,
+    #[error("the requisition has not been filed for approval; ask to open it first")]
+    ApprovalNotFiled,
+    #[error("requisition {id} cannot {verb} while it is {status}")]
+    InvalidTransition {
+        id: Uuid,
+        verb: &'static str,
+        status: String,
+    },
     #[error("approvals transport: {0}")]
     Transport(String),
     #[error("database error: {0}")]
@@ -42,6 +64,8 @@ impl RequisitionError {
             Self::NotFound(_) => "requisition_not_found",
             Self::NotDraft(..) => "requisition_not_draft",
             Self::ApprovalNotGranted => "approval_not_granted",
+            Self::ApprovalNotFiled => "approval_not_filed",
+            Self::InvalidTransition { .. } => "requisition_invalid_transition",
             Self::Transport(_) => "approvals_seam_error",
             Self::Db(_) => "internal_error",
         }
@@ -52,6 +76,8 @@ impl RequisitionError {
             Self::NotFound(_) => 404,
             Self::NotDraft(..) => 409,
             Self::ApprovalNotGranted => 409,
+            Self::ApprovalNotFiled => 409,
+            Self::InvalidTransition { .. } => 409,
             Self::Transport(_) => 502,
             Self::Db(_) => 500,
         }
@@ -156,7 +182,9 @@ impl RequisitionLifecycleService {
 
     /// Flip a draft requisition to open — verdict-gated when a link exists
     /// (the same pull-based fail-closed posture every engine-gated verb
-    /// uses). Returns false when already open (idempotent).
+    /// uses). With the approvals port wired, a draft that was never filed is
+    /// refused (`approval_not_filed`); unwired, it opens directly. Returns
+    /// false when already open (idempotent).
     pub async fn confirm_open(&self, requisition_id: Uuid) -> Result<bool, RequisitionError> {
         let mut tx = self.rpool().begin().await?;
         if let Some(scope) = backbone_orm::org_scope::current_org_scope() {
@@ -183,12 +211,16 @@ impl RequisitionLifecycleService {
             tx.rollback().await?;
             return Err(RequisitionError::NotDraft(requisition_id, status));
         }
+        let port = self
+            .approvals
+            .read()
+            .expect("requisition approvals lock poisoned")
+            .clone();
+        if link.is_none() && port.is_wired() {
+            tx.rollback().await?;
+            return Err(RequisitionError::ApprovalNotFiled);
+        }
         if let Some(request_id) = link {
-            let port = self
-                .approvals
-                .read()
-                .expect("requisition approvals lock poisoned")
-                .clone();
             if !matches!(
                 port.status(request_id).await,
                 Ok(super::recruitment_approvals_port::RecruitmentVerdict::Approved)
@@ -202,6 +234,74 @@ impl RequisitionLifecycleService {
              WHERE id = $1 AND status = 'draft'",
         )
         .bind(requisition_id)
+        .execute(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        Ok(true)
+    }
+
+    /// Pause hiring on an open requisition. Returns false when already on hold.
+    pub async fn hold(&self, requisition_id: Uuid) -> Result<bool, RequisitionError> {
+        self.move_status(requisition_id, "hold", &["open"], "on_hold").await
+    }
+
+    /// Resume hiring on a requisition on hold. Returns false when already open.
+    pub async fn resume(&self, requisition_id: Uuid) -> Result<bool, RequisitionError> {
+        self.move_status(requisition_id, "resume", &["on_hold"], "open").await
+    }
+
+    /// Close an open or held requisition: hiring for it is done. Returns false
+    /// when already closed.
+    pub async fn close(&self, requisition_id: Uuid) -> Result<bool, RequisitionError> {
+        self.move_status(requisition_id, "close", &["open", "on_hold"], "closed").await
+    }
+
+    /// Withdraw a requisition that has not closed. Returns false when already
+    /// cancelled.
+    pub async fn cancel(&self, requisition_id: Uuid) -> Result<bool, RequisitionError> {
+        self.move_status(requisition_id, "cancel", &["draft", "open", "on_hold"], "cancelled")
+            .await
+    }
+
+    /// Move the status from one of `from` to `to` under a row lock. The
+    /// target state itself is a no-op (`Ok(false)`); any other state refuses.
+    async fn move_status(
+        &self,
+        requisition_id: Uuid,
+        verb: &'static str,
+        from: &[&str],
+        to: &str,
+    ) -> Result<bool, RequisitionError> {
+        let mut tx = self.rpool().begin().await?;
+        if let Some(scope) = backbone_orm::org_scope::current_org_scope() {
+            backbone_orm::org_scope::bind_org_scope_on(&mut tx, &scope).await?;
+        }
+        let status: Option<String> = sqlx::query_scalar(
+            r#"SELECT status::text
+                 FROM recruitment.job_requisitions
+                WHERE id = $1 AND (metadata->>'deleted_at') IS NULL
+                FOR UPDATE"#,
+        )
+        .bind(requisition_id)
+        .fetch_optional(&mut *tx)
+        .await?;
+        let status = match status {
+            Some(s) => s,
+            None => return Err(RequisitionError::NotFound(requisition_id)),
+        };
+        if status == to {
+            tx.rollback().await?;
+            return Ok(false);
+        }
+        if !from.contains(&status.as_str()) {
+            tx.rollback().await?;
+            return Err(RequisitionError::InvalidTransition { id: requisition_id, verb, status });
+        }
+        sqlx::query(
+            "UPDATE recruitment.job_requisitions SET status = $2::requisition_status WHERE id = $1",
+        )
+        .bind(requisition_id)
+        .bind(to)
         .execute(&mut *tx)
         .await?;
         tx.commit().await?;

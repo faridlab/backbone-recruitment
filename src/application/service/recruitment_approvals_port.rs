@@ -58,6 +58,12 @@ pub trait RecruitmentFilingPort: Send + Sync {
     async fn file_offer(&self, filing: &OfferFiling) -> Result<Uuid, RecruitmentSeamError>;
     async fn status(&self, approval_request_id: Uuid)
         -> Result<RecruitmentVerdict, RecruitmentSeamError>;
+
+    /// Whether a real engine stands behind this port. A wired port gates every
+    /// gated step on a filed approval; only the unwired default answers false.
+    fn is_wired(&self) -> bool {
+        true
+    }
 }
 
 /// The unwired default.
@@ -79,6 +85,9 @@ impl RecruitmentFilingPort for UnwiredRecruitmentApprovals {
         id: Uuid,
     ) -> Result<RecruitmentVerdict, RecruitmentSeamError> {
         Err(RecruitmentSeamError::UnknownApprovalRequest(id))
+    }
+    fn is_wired(&self) -> bool {
+        false
     }
 }
 

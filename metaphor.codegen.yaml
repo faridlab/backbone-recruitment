@@ -67,6 +67,7 @@ user_owned:
   - "tests/hire_flow.rs"
   - "tests/vacancy_and_start_date.rs"
   - "tests/approval_link_read_shape.rs"
+  - "tests/requisition_lifecycle.rs"
 
   # Hand-authored module documentation.
   - "docs/**"

@@ -183,6 +183,62 @@ async fn confirm_open_requisition(
     }
 }
 
+/// The answer every requisition status verb gives: the state it is in now,
+/// and `already` when it was there before the call.
+fn requisition_move_response(
+    result: Result<bool, crate::application::service::requisition_lifecycle::RequisitionError>,
+    status: &'static str,
+) -> axum::response::Response {
+    match result {
+        Ok(moved) => (
+            StatusCode::OK,
+            Json(if moved {
+                serde_json::json!({ "status": status })
+            } else {
+                serde_json::json!({ "status": status, "already": true })
+            }),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::from_u16(e.http_status()).unwrap_or(StatusCode::CONFLICT),
+            Json(serde_json::json!({ "error": e.code(), "message": e.to_string() })),
+        )
+            .into_response(),
+    }
+}
+
+async fn hold_requisition(
+    State(svc): State<Arc<crate::application::service::requisition_lifecycle::RequisitionLifecycleService>>,
+    _org: OrgContext,
+    Path(requisition_id): Path<Uuid>,
+) -> axum::response::Response {
+    requisition_move_response(svc.hold(requisition_id).await, "on_hold")
+}
+
+async fn resume_requisition(
+    State(svc): State<Arc<crate::application::service::requisition_lifecycle::RequisitionLifecycleService>>,
+    _org: OrgContext,
+    Path(requisition_id): Path<Uuid>,
+) -> axum::response::Response {
+    requisition_move_response(svc.resume(requisition_id).await, "open")
+}
+
+async fn close_requisition(
+    State(svc): State<Arc<crate::application::service::requisition_lifecycle::RequisitionLifecycleService>>,
+    _org: OrgContext,
+    Path(requisition_id): Path<Uuid>,
+) -> axum::response::Response {
+    requisition_move_response(svc.close(requisition_id).await, "closed")
+}
+
+async fn cancel_requisition(
+    State(svc): State<Arc<crate::application::service::requisition_lifecycle::RequisitionLifecycleService>>,
+    _org: OrgContext,
+    Path(requisition_id): Path<Uuid>,
+) -> axum::response::Response {
+    requisition_move_response(svc.cancel(requisition_id).await, "cancelled")
+}
+
 async fn create_application(
     State(svc): State<Arc<JobApplicationWriteService>>,
     _org: OrgContext,
@@ -527,6 +583,10 @@ fn create_recruitment_verb_routes(
     let requisition_gate = Router::new()
         .route("/requisitions/:id/open", post(open_requisition))
         .route("/requisitions/:id/confirm-open", post(confirm_open_requisition))
+        .route("/requisitions/:id/hold", post(hold_requisition))
+        .route("/requisitions/:id/resume", post(resume_requisition))
+        .route("/requisitions/:id/close", post(close_requisition))
+        .route("/requisitions/:id/cancel", post(cancel_requisition))
         .with_state(requisition_gate_svc);
 
     let applications = Router::new()
