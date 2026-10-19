@@ -80,6 +80,13 @@ impl axum::response::IntoResponse for OfferLetterTemplateError {
 // Route Configuration
 // =============================================================================
 
+/// The permissions this entity's generic routes require: `offer_letter_template:<action>` for `read`, `create`,
+/// `update`, `delete`, `restore` and `purge`, with any rename the schema's `requires:` declares.
+pub fn offer_letter_template_permissions() -> backbone_core::http::CrudPermissions {
+    backbone_core::http::CrudPermissions::new("offer_letter_template")
+        .in_module("recruitment")
+}
+
 /// Create Axum router with all 16 Backbone endpoints for OfferLetterTemplate.
 ///
 /// # Routes
@@ -109,21 +116,23 @@ impl axum::response::IntoResponse for OfferLetterTemplateError {
 /// let router = create_offer_letter_template_routes(service);
 /// ```
 pub fn create_offer_letter_template_routes(service: Arc<OfferLetterTemplateService>) -> Router {
-    BackboneCrudHandler::<OfferLetterTemplateService, OfferLetterTemplate, CreateOfferLetterTemplateDto, UpdateOfferLetterTemplateDto, OfferLetterTemplateResponseDto>::routes(
+    BackboneCrudHandler::<OfferLetterTemplateService, OfferLetterTemplate, CreateOfferLetterTemplateDto, UpdateOfferLetterTemplateDto, OfferLetterTemplateResponseDto>::routes_guarded(
         service,
         "/offer_letter_templates",
+        offer_letter_template_permissions(),
     )
 }
 
 /// Create Axum router with only the read (GET) endpoints for OfferLetterTemplate.
 ///
-/// Safe for public, unauthenticated exposure (e.g., reference data).
+/// Each route requires the entity's `read` permission, so it needs an authenticated caller.
 /// Mutations must be served separately via `create_offer_letter_template_write_routes`,
 /// typically wrapped in an auth middleware layer.
 pub fn create_offer_letter_template_read_routes(service: Arc<OfferLetterTemplateService>) -> Router {
-    BackboneCrudHandler::<OfferLetterTemplateService, OfferLetterTemplate, CreateOfferLetterTemplateDto, UpdateOfferLetterTemplateDto, OfferLetterTemplateResponseDto>::read_routes(
+    BackboneCrudHandler::<OfferLetterTemplateService, OfferLetterTemplate, CreateOfferLetterTemplateDto, UpdateOfferLetterTemplateDto, OfferLetterTemplateResponseDto>::read_routes_guarded(
         service,
         "/offer_letter_templates",
+        offer_letter_template_permissions(),
     )
 }
 
@@ -139,9 +148,10 @@ pub fn create_offer_letter_template_read_routes(service: Arc<OfferLetterTemplate
 /// service (e.g. a command router over its domain engine), serve THAT instead
 /// for any mutation that must respect domain rules.
 pub fn create_offer_letter_template_write_routes(service: Arc<OfferLetterTemplateService>) -> Router {
-    BackboneCrudHandler::<OfferLetterTemplateService, OfferLetterTemplate, CreateOfferLetterTemplateDto, UpdateOfferLetterTemplateDto, OfferLetterTemplateResponseDto>::write_routes(
+    BackboneCrudHandler::<OfferLetterTemplateService, OfferLetterTemplate, CreateOfferLetterTemplateDto, UpdateOfferLetterTemplateDto, OfferLetterTemplateResponseDto>::write_routes_guarded(
         service,
         "/offer_letter_templates",
+        offer_letter_template_permissions(),
     )
 }
 

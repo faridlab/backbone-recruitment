@@ -225,6 +225,14 @@ impl super::Entity for JobApplication {
 }
 
 impl backbone_core::PersistentEntity for JobApplication {
+    fn references() -> &'static [backbone_core::Reference] {
+        const REFERENCES: &[backbone_core::Reference] = &[
+            backbone_core::Reference::new("stage_id", "recruitment.recruitment_stages", "id"),
+            backbone_core::Reference::new("candidate_id", "recruitment.candidates", "id"),
+            backbone_core::Reference::new("requisition_id", "recruitment.job_requisitions", "id"),
+        ];
+        REFERENCES
+    }
     fn entity_id(&self) -> String {
         self.id.to_string()
     }

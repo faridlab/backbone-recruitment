@@ -16,14 +16,14 @@ pub mod requisition_skill_handler;
 
 
 // Re-exports
-pub use candidate_handler::{create_candidate_routes, create_candidate_read_routes, create_candidate_write_routes};
-pub use interview_handler::{create_interview_routes, create_interview_read_routes, create_interview_write_routes};
-pub use job_application_handler::{create_job_application_routes, create_job_application_read_routes, create_job_application_write_routes};
-pub use job_offer_handler::{create_job_offer_routes, create_job_offer_read_routes, create_job_offer_write_routes};
-pub use job_requisition_handler::{create_job_requisition_routes, create_job_requisition_read_routes, create_job_requisition_write_routes};
-pub use offer_letter_template_handler::{create_offer_letter_template_routes, create_offer_letter_template_read_routes, create_offer_letter_template_write_routes};
-pub use recruitment_stage_handler::{create_recruitment_stage_routes, create_recruitment_stage_read_routes, create_recruitment_stage_write_routes};
-pub use requisition_skill_handler::{create_requisition_skill_routes, create_requisition_skill_read_routes, create_requisition_skill_write_routes};
+pub use candidate_handler::{create_candidate_routes, create_candidate_read_routes, create_candidate_write_routes, candidate_permissions};
+pub use interview_handler::{create_interview_routes, create_interview_read_routes, create_interview_write_routes, interview_permissions};
+pub use job_application_handler::{create_job_application_routes, create_job_application_read_routes, create_job_application_write_routes, job_application_permissions};
+pub use job_offer_handler::{create_job_offer_routes, create_job_offer_read_routes, create_job_offer_write_routes, job_offer_permissions};
+pub use job_requisition_handler::{create_job_requisition_routes, create_job_requisition_read_routes, create_job_requisition_write_routes, job_requisition_permissions};
+pub use offer_letter_template_handler::{create_offer_letter_template_routes, create_offer_letter_template_read_routes, create_offer_letter_template_write_routes, offer_letter_template_permissions};
+pub use recruitment_stage_handler::{create_recruitment_stage_routes, create_recruitment_stage_read_routes, create_recruitment_stage_write_routes, recruitment_stage_permissions};
+pub use requisition_skill_handler::{create_requisition_skill_routes, create_requisition_skill_read_routes, create_requisition_skill_write_routes, requisition_skill_permissions};
 
 // This directory's extension (hand-written; ADR-0031).
 include!("mod.ext.rs");

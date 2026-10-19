@@ -80,6 +80,13 @@ impl axum::response::IntoResponse for RequisitionSkillError {
 // Route Configuration
 // =============================================================================
 
+/// The permissions this entity's generic routes require: `requisition_skill:<action>` for `read`, `create`,
+/// `update`, `delete`, `restore` and `purge`, with any rename the schema's `requires:` declares.
+pub fn requisition_skill_permissions() -> backbone_core::http::CrudPermissions {
+    backbone_core::http::CrudPermissions::new("requisition_skill")
+        .in_module("recruitment")
+}
+
 /// Create Axum router with all 16 Backbone endpoints for RequisitionSkill.
 ///
 /// # Routes
@@ -109,21 +116,23 @@ impl axum::response::IntoResponse for RequisitionSkillError {
 /// let router = create_requisition_skill_routes(service);
 /// ```
 pub fn create_requisition_skill_routes(service: Arc<RequisitionSkillService>) -> Router {
-    BackboneCrudHandler::<RequisitionSkillService, RequisitionSkill, CreateRequisitionSkillDto, UpdateRequisitionSkillDto, RequisitionSkillResponseDto>::routes(
+    BackboneCrudHandler::<RequisitionSkillService, RequisitionSkill, CreateRequisitionSkillDto, UpdateRequisitionSkillDto, RequisitionSkillResponseDto>::routes_guarded(
         service,
         "/requisition_skills",
+        requisition_skill_permissions(),
     )
 }
 
 /// Create Axum router with only the read (GET) endpoints for RequisitionSkill.
 ///
-/// Safe for public, unauthenticated exposure (e.g., reference data).
+/// Each route requires the entity's `read` permission, so it needs an authenticated caller.
 /// Mutations must be served separately via `create_requisition_skill_write_routes`,
 /// typically wrapped in an auth middleware layer.
 pub fn create_requisition_skill_read_routes(service: Arc<RequisitionSkillService>) -> Router {
-    BackboneCrudHandler::<RequisitionSkillService, RequisitionSkill, CreateRequisitionSkillDto, UpdateRequisitionSkillDto, RequisitionSkillResponseDto>::read_routes(
+    BackboneCrudHandler::<RequisitionSkillService, RequisitionSkill, CreateRequisitionSkillDto, UpdateRequisitionSkillDto, RequisitionSkillResponseDto>::read_routes_guarded(
         service,
         "/requisition_skills",
+        requisition_skill_permissions(),
     )
 }
 
@@ -139,9 +148,10 @@ pub fn create_requisition_skill_read_routes(service: Arc<RequisitionSkillService
 /// service (e.g. a command router over its domain engine), serve THAT instead
 /// for any mutation that must respect domain rules.
 pub fn create_requisition_skill_write_routes(service: Arc<RequisitionSkillService>) -> Router {
-    BackboneCrudHandler::<RequisitionSkillService, RequisitionSkill, CreateRequisitionSkillDto, UpdateRequisitionSkillDto, RequisitionSkillResponseDto>::write_routes(
+    BackboneCrudHandler::<RequisitionSkillService, RequisitionSkill, CreateRequisitionSkillDto, UpdateRequisitionSkillDto, RequisitionSkillResponseDto>::write_routes_guarded(
         service,
         "/requisition_skills",
+        requisition_skill_permissions(),
     )
 }
 

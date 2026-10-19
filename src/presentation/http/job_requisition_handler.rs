@@ -82,6 +82,13 @@ impl axum::response::IntoResponse for JobRequisitionError {
 // Route Configuration
 // =============================================================================
 
+/// The permissions this entity's generic routes require: `job_requisition:<action>` for `read`, `create`,
+/// `update`, `delete`, `restore` and `purge`, with any rename the schema's `requires:` declares.
+pub fn job_requisition_permissions() -> backbone_core::http::CrudPermissions {
+    backbone_core::http::CrudPermissions::new("job_requisition")
+        .in_module("recruitment")
+}
+
 /// Create Axum router with all 16 Backbone endpoints for JobRequisition.
 ///
 /// # Routes
@@ -111,21 +118,23 @@ impl axum::response::IntoResponse for JobRequisitionError {
 /// let router = create_job_requisition_routes(service);
 /// ```
 pub fn create_job_requisition_routes(service: Arc<JobRequisitionService>) -> Router {
-    BackboneCrudHandler::<JobRequisitionService, JobRequisition, CreateJobRequisitionDto, UpdateJobRequisitionDto, JobRequisitionResponseDto>::routes(
+    BackboneCrudHandler::<JobRequisitionService, JobRequisition, CreateJobRequisitionDto, UpdateJobRequisitionDto, JobRequisitionResponseDto>::routes_guarded(
         service,
         "/job_requisitions",
+        job_requisition_permissions(),
     )
 }
 
 /// Create Axum router with only the read (GET) endpoints for JobRequisition.
 ///
-/// Safe for public, unauthenticated exposure (e.g., reference data).
+/// Each route requires the entity's `read` permission, so it needs an authenticated caller.
 /// Mutations must be served separately via `create_job_requisition_write_routes`,
 /// typically wrapped in an auth middleware layer.
 pub fn create_job_requisition_read_routes(service: Arc<JobRequisitionService>) -> Router {
-    BackboneCrudHandler::<JobRequisitionService, JobRequisition, CreateJobRequisitionDto, UpdateJobRequisitionDto, JobRequisitionResponseDto>::read_routes(
+    BackboneCrudHandler::<JobRequisitionService, JobRequisition, CreateJobRequisitionDto, UpdateJobRequisitionDto, JobRequisitionResponseDto>::read_routes_guarded(
         service,
         "/job_requisitions",
+        job_requisition_permissions(),
     )
 }
 
@@ -141,9 +150,10 @@ pub fn create_job_requisition_read_routes(service: Arc<JobRequisitionService>) -
 /// service (e.g. a command router over its domain engine), serve THAT instead
 /// for any mutation that must respect domain rules.
 pub fn create_job_requisition_write_routes(service: Arc<JobRequisitionService>) -> Router {
-    BackboneCrudHandler::<JobRequisitionService, JobRequisition, CreateJobRequisitionDto, UpdateJobRequisitionDto, JobRequisitionResponseDto>::write_routes(
+    BackboneCrudHandler::<JobRequisitionService, JobRequisition, CreateJobRequisitionDto, UpdateJobRequisitionDto, JobRequisitionResponseDto>::write_routes_guarded(
         service,
         "/job_requisitions",
+        job_requisition_permissions(),
     )
 }
 
